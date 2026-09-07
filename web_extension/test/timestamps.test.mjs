@@ -39,25 +39,25 @@ const json3 = parseTranscript(JSON.stringify({ events }));
 check('json3 still parses', json3.cues, 12);
 check('json3 still measures the span for the coverage check', json3.endMs, 119000);
 
-const marked = json3.text.split('\n').filter(l => /^\[\d/.test(l));
-// 12 cues over 110 s, one marker allowed per 30 s → 0:00, 0:30, 1:00, 1:30.
-check('anchors are sparse, not one per cue', marked.length, 4);
+const marked = json3.text.split('\n\n').filter(l => /^\[\d/.test(l));
+// 12 cues over 110 s, one marker allowed per 60 s → 0:00, 1:00.
+check('anchors are sparse, not one per cue', marked.length, 2);
 check('the anchors are the right moments',
-  marked.map(l => l.slice(1, l.indexOf(']'))), ['0:00', '0:30', '1:00', '1:30']);
-check('an unmarked line keeps its text untouched', json3.text.split('\n')[1], 'frase numero 1');
-check('a marked line keeps its text too', json3.text.split('\n')[0], '[0:00] frase numero 0');
+  marked.map(l => l.slice(1, l.indexOf(']'))), ['0:00', '1:00']);
+check('an unmarked line keeps its text untouched', json3.text.split('\n\n')[1], '[1:00] frase numero 6 frase numero 7 frase numero 8 frase numero 9 frase numero 10 frase numero 11');
+check('a marked line keeps its text too', json3.text.split('\n\n')[0], '[0:00] frase numero 0 frase numero 1 frase numero 2 frase numero 3 frase numero 4 frase numero 5');
 check('hasTimestamps sees them', hasTimestamps(json3.text), true);
 
 // ── srv3 and the legacy XML must agree ───────────────────────────────────────
 const srv3 = parseTranscript(
   '<timedtext><p t="0" d="4000"><s>prima riga</s></p>' +
   '<p t="45000" d="4000"><s>dopo il minuto</s></p></timedtext>');
-check('srv3 anchors', srv3.text, '[0:00] prima riga\n[0:45] dopo il minuto');
+check('srv3 anchors', srv3.text, '[0:00] prima riga dopo il minuto');
 
 const legacy = parseTranscript(
   '<transcript><text start="0" dur="4">prima riga</text>' +
   '<text start="45.5" dur="4">dopo il minuto</text></transcript>');
-check('legacy xml anchors (seconds → ms)', legacy.text, '[0:00] prima riga\n[0:45] dopo il minuto');
+check('legacy xml anchors (seconds → ms)', legacy.text, '[0:00] prima riga dopo il minuto');
 
 // ── the rolling-window dedupe must not lose the EARLIER time ─────────────────
 // Auto-generated tracks re-send a caption that grows by a character or two. That
@@ -73,7 +73,7 @@ const rolling = parseTranscript(JSON.stringify({
 }));
 check('the growing caption is still merged into one cue', rolling.cues, 2);
 check('...keeping the longer wording at the EARLIER time',
-  rolling.text.split('\n')[0], '[0:05] ciao a tutti!');
+  rolling.text.split('\n\n')[0], '[0:05] ciao a tutti! la prossima');
 check('an identical repeat is still dropped',
   parseTranscript(JSON.stringify({ events: [
     { tStartMs: 0, dDurationMs: 1000, segs: [{ utf8: 'uguale' }] },

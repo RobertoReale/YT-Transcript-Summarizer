@@ -1,5 +1,6 @@
 import { streamLLM } from './modules/llm-stream.js';
 import { CONFIG, getPreset } from './modules/config.js';
+import { parseMarkdown } from './modules/markdown.js';
 
 let currentTabId = null;
 let currentVideoId = null;
@@ -46,18 +47,7 @@ async function fetchVideoInfo() {
   }
 }
 
-function timeToSeconds(timeStr) {
-  const parts = timeStr.split(':').map(Number);
-  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
-  if (parts.length === 2) return parts[0] * 60 + parts[1];
-  return 0;
-}
 
-function parseTimestamps(html) {
-  return html.replace(/\[(\d{1,2}:\d{2}(?::\d{2})?)\]/g, (match, time) => {
-    return `<a href="#" class="timestamp-link" data-time="${timeToSeconds(time)}">${match}</a>`;
-  });
-}
 
 async function startSummarization() {
   if (!currentVideoId || !currentTabId) return;
@@ -115,8 +105,7 @@ async function startSummarization() {
       if (abortController.signal.aborted) return;
       rawMarkdown += chunk;
       
-      let html = marked.parse(rawMarkdown);
-      html = parseTimestamps(html);
+      let html = parseMarkdown(rawMarkdown);
       
       output.innerHTML = html;
       

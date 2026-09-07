@@ -52,7 +52,7 @@ function pushCue(cues, text, startMs) {
 // add ~120k characters to a two-hour transcript — eating exactly the composer
 // budget the split in §3.1 exists to protect — while these cost ~2.4k and are
 // still fine enough to point at a moment.
-const MARKER_INTERVAL_MS = 30000;
+const MARKER_INTERVAL_MS = 60000;
 
 /** `[m:ss]`, or `[h:mm:ss]` once the video is over an hour. */
 export function formatTimestamp(ms) {
@@ -66,16 +66,24 @@ export function formatTimestamp(ms) {
 
 function render(cues) {
   const out = [];
+  let currentBlock = [];
   let nextMark = 0;
   for (const c of cues) {
     if (c.t >= nextMark) {
-      out.push(`[${formatTimestamp(c.t)}] ${c.s}`);
+      if (currentBlock.length > 0) {
+        out.push(currentBlock.join(' '));
+        currentBlock = [];
+      }
+      currentBlock.push(`[${formatTimestamp(c.t)}] ${c.s}`);
       nextMark = c.t + MARKER_INTERVAL_MS;
     } else {
-      out.push(c.s);
+      currentBlock.push(c.s);
     }
   }
-  return out.join('\n');
+  if (currentBlock.length > 0) {
+    out.push(currentBlock.join(' '));
+  }
+  return out.join('\n\n');
 }
 
 // Does this transcript carry anchors the model can actually cite? The
