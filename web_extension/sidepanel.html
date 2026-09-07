@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YT Summarizer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="sidepanel.css">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+
+  <header class="header">
+    <div class="logo">
+      <svg width="24" height="24" viewBox="0 0 28 28" fill="none">
+        <rect width="28" height="28" rx="8" fill="url(#g1)"/>
+        <path d="M11 9.5l8 4.5-8 4.5V9.5z" fill="white"/>
+        <defs>
+          <linearGradient id="g1" x1="0" y1="0" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#7c3aed"/>
+            <stop offset="100%" stop-color="#2563eb"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      <span>Summarizer</span>
+    </div>
+    <div class="header-actions">
+      <button id="btn-settings" class="icon-btn" title="Open Settings">⚙️</button>
+    </div>
+  </header>
+
+  <div class="video-info" id="video-info">
+    <div class="video-title" id="video-title">No video detected</div>
+    <div class="video-status" id="video-status">Open a YouTube video to summarize</div>
+  </div>
+
+  <main class="content-area" id="content-area">
+    <div class="markdown-body" id="summary-output"></div>
+    <div class="loading-indicator hidden" id="loading-indicator">
+      <div class="pulse"></div>
+      <span>Generating summary...</span>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="action-row">
+      <button id="btn-summarize" class="btn primary" disabled>Summarize</button>
+      <button id="btn-stop" class="btn danger hidden">Stop</button>
+      <button id="btn-copy" class="btn secondary" disabled title="Copy to clipboard">📋 Copy</button>
+    </div>
+  </footer>
+
+  <script type="module" src="sidepanel.js"></script>
+</body>
+</html>
