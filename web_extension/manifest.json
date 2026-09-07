@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "YT Transcript Summarizer",
+  "name": "__MSG_extName__",
   "version": "10.22.1",
-  "description": "Summarize YouTube videos with Claude, OpenAI, Gemini and more — reliable transcript extraction via InnerTube API.",
+  "description": "__MSG_extDesc__",
+  "default_locale": "en",
   "browser_specific_settings": {
     "gecko": {
       "id": "yt-transcript-summarizer@roberto-reale",
@@ -29,6 +30,10 @@
   ],
   "side_panel": {
     "default_path": "sidepanel.html"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
   },
   "declarative_net_request": {
     "rule_resources": [

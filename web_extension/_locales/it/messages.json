@@ -1,0 +1,37 @@
+{
+  "extName": { "message": "Riassunti Video YouTube (YT Summarizer)" },
+  "extDesc": { "message": "Riassumi video YouTube con Claude, OpenAI, Gemini e altri. Estrazione affidabile dei sottotitoli tramite API InnerTube." },
+  
+  "optionsTitle": { "message": "Impostazioni" },
+  "apiSettingsTitle": { "message": "Configurazione API" },
+  "apiSettingsDesc": { "message": "Configura il tuo provider AI preferito per generare riassunti nel pannello laterale." },
+  "providerLabel": { "message": "Provider AI" },
+  "apiKeyLabel": { "message": "Chiave API" },
+  
+  "providerGemini": { "message": "Google Gemini (Consigliato/Gratis)" },
+  "providerAnthropic": { "message": "Anthropic Claude" },
+  "providerOpenai": { "message": "OpenAI" },
+  "providerGroq": { "message": "Groq" },
+  "providerOpenrouter": { "message": "OpenRouter" },
+  "providerCustom": { "message": "Personalizzato" },
+  
+  "helpGemini": { "message": "Ottieni chiave gratis su Google AI Studio ↗" },
+  "helpGroq": { "message": "Ottieni chiave gratis su GroqCloud ↗" },
+  "helpAnthropic": { "message": "Ottieni chiave su Anthropic Console ↗" },
+  "helpOpenai": { "message": "Ottieni chiave su OpenAI Platform ↗" },
+  
+  "btnSave": { "message": "Salva Impostazioni" },
+  "saveSuccess": { "message": "Impostazioni salvate!" },
+  
+  "sidepanelMissingKey": { "message": "👋 Per riassumere nel Side Panel inserisci una chiave API (consigliata Google Gemini, 100% gratuita) oppure usa la modalità Web gratuita dal popup." },
+  
+  "sidepanelTitle": { "message": "Riassunti" },
+  "noVideoDetected": { "message": "Nessun video rilevato" },
+  "openVideoToSummarize": { "message": "Apri un video YouTube per riassumere" },
+  "generatingSummary": { "message": "Generazione in corso..." },
+  "btnSummarize": { "message": "Riassumi" },
+  "btnRegenerate": { "message": "🔄 Rigenera" },
+  "btnStop": { "message": "Ferma" },
+  "btnCopy": { "message": "📋 Copia" },
+  "copied": { "message": "✅ Copiato!" }
+}

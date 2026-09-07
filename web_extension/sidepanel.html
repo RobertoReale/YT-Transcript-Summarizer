@@ -22,7 +22,7 @@
           </linearGradient>
         </defs>
       </svg>
-      <span>Summarizer</span>
+      <span data-i18n="sidepanelTitle">Summarizer</span>
     </div>
     <div class="header-actions">
       <button id="btn-settings" class="icon-btn" title="Open Settings">⚙️</button>
@@ -30,15 +30,15 @@
   </header>
 
   <div class="video-info" id="video-info">
-    <div class="video-title" id="video-title">No video detected</div>
-    <div class="video-status" id="video-status">Open a YouTube video to summarize</div>
+    <div class="video-title" id="video-title" data-i18n="noVideoDetected">No video detected</div>
+    <div class="video-status" id="video-status" data-i18n="openVideoToSummarize">Open a YouTube video to summarize</div>
   </div>
 
   <main class="content-area" id="content-area">
     <div class="markdown-body" id="summary-output"></div>
     <div class="loading-indicator hidden" id="loading-indicator">
       <div class="pulse"></div>
-      <span>Generating summary...</span>
+      <span data-i18n="generatingSummary">Generating summary...</span>
     </div>
   </main>
 
@@ -46,39 +46,40 @@
     <div class="modal-overlay" id="modal-overlay"></div>
     <div class="modal-content">
       <div class="modal-header">
-        <h2 class="modal-title">Settings</h2>
+        <h2 class="modal-title" data-i18n="optionsTitle">Settings</h2>
         <button id="btn-close-modal" class="icon-btn">✖</button>
       </div>
       <div class="modal-body">
         <div class="field">
-          <label>AI Provider</label>
+          <label data-i18n="providerLabel">AI Provider</label>
           <select id="modal-provider-select">
-            <option value="gemini">Google Gemini (Recommended/Free)</option>
-            <option value="anthropic">Anthropic Claude</option>
-            <option value="openai">OpenAI</option>
-            <option value="groq">Groq</option>
-            <option value="openrouter">OpenRouter</option>
-            <option value="custom">Custom</option>
+            <option value="gemini" data-i18n="providerGemini">Google Gemini (Recommended/Free)</option>
+            <option value="anthropic" data-i18n="providerAnthropic">Anthropic Claude</option>
+            <option value="openai" data-i18n="providerOpenai">OpenAI</option>
+            <option value="groq" data-i18n="providerGroq">Groq</option>
+            <option value="openrouter" data-i18n="providerOpenrouter">OpenRouter</option>
+            <option value="custom" data-i18n="providerCustom">Custom</option>
           </select>
         </div>
         <div class="field">
-          <label>API Key</label>
-          <input type="password" id="modal-api-key" placeholder="Enter API Key...">
+          <label data-i18n="apiKeyLabel">API Key</label>
+          <input type="password" id="modal-api-key" placeholder="Enter API Key..." data-i18n="apiKeyLabel">
           <a id="modal-help-link" href="https://aistudio.google.com/app/apikey" target="_blank" class="help-link">Ottieni chiave gratis su Google AI Studio ↗</a>
         </div>
-        <button id="btn-save-settings" class="btn primary">Save & Close</button>
+        <button id="btn-save-settings" class="btn primary" data-i18n="btnSave">Save & Close</button>
       </div>
     </div>
   </div>
 
   <footer class="footer">
     <div class="action-row">
-      <button id="btn-summarize" class="btn primary" disabled>Summarize</button>
-      <button id="btn-stop" class="btn danger hidden">Stop</button>
-      <button id="btn-copy" class="btn secondary" disabled title="Copy to clipboard">📋 Copy</button>
+      <button id="btn-summarize" class="btn primary" disabled data-i18n="btnSummarize">Summarize</button>
+      <button id="btn-stop" class="btn danger hidden" data-i18n="btnStop">Stop</button>
+      <button id="btn-copy" class="btn secondary" disabled title="Copy to clipboard" data-i18n-title="btnCopy" data-i18n="btnCopy">📋 Copy</button>
     </div>
   </footer>
 
+  <script type="module" src="modules/i18n.js"></script>
   <script type="module" src="sidepanel.js"></script>
 </body>
 </html>

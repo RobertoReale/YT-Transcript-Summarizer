@@ -1,0 +1,37 @@
+{
+  "extName": { "message": "YT Transcript Summarizer" },
+  "extDesc": { "message": "Summarize YouTube videos with Claude, OpenAI, Gemini and more — reliable transcript extraction via InnerTube API." },
+  
+  "optionsTitle": { "message": "Settings" },
+  "apiSettingsTitle": { "message": "API Configuration" },
+  "apiSettingsDesc": { "message": "Configure your preferred AI provider for generating summaries in the side panel." },
+  "providerLabel": { "message": "AI Provider" },
+  "apiKeyLabel": { "message": "API Key" },
+  
+  "providerGemini": { "message": "Google Gemini (Recommended/Free)" },
+  "providerAnthropic": { "message": "Anthropic Claude" },
+  "providerOpenai": { "message": "OpenAI" },
+  "providerGroq": { "message": "Groq" },
+  "providerOpenrouter": { "message": "OpenRouter" },
+  "providerCustom": { "message": "Custom" },
+  
+  "helpGemini": { "message": "Get free key on Google AI Studio ↗" },
+  "helpGroq": { "message": "Get free key on GroqCloud ↗" },
+  "helpAnthropic": { "message": "Get key on Anthropic Console ↗" },
+  "helpOpenai": { "message": "Get key on OpenAI Platform ↗" },
+  
+  "btnSave": { "message": "Save Settings" },
+  "saveSuccess": { "message": "Settings saved!" },
+  
+  "sidepanelMissingKey": { "message": "👋 To summarize in the Side Panel, please enter an API key (Google Gemini is recommended and 100% free) or use the free Web Mode from the popup." },
+  
+  "sidepanelTitle": { "message": "Summarizer" },
+  "noVideoDetected": { "message": "No video detected" },
+  "openVideoToSummarize": { "message": "Open a YouTube video to summarize" },
+  "generatingSummary": { "message": "Generating summary..." },
+  "btnSummarize": { "message": "Summarize" },
+  "btnRegenerate": { "message": "🔄 Regenerate" },
+  "btnStop": { "message": "Stop" },
+  "btnCopy": { "message": "📋 Copy" },
+  "copied": { "message": "✅ Copied!" }
+}

@@ -56,11 +56,11 @@ async function checkCacheAndResetUI() {
   stopSummarization();
   
   if (cached) {
-    btnSum.innerText = '🔄 Rigenera';
+    btnSum.innerText = chrome.i18n.getMessage('btnRegenerate') || '🔄 Regenerate';
     output.innerHTML = parseMarkdown(cached);
     document.getElementById('btn-copy').disabled = false;
   } else {
-    btnSum.innerText = 'Summarize';
+    btnSum.innerText = chrome.i18n.getMessage('btnSummarize') || 'Summarize';
     output.innerHTML = '';
     document.getElementById('btn-copy').disabled = true;
   }
@@ -120,7 +120,8 @@ async function startSummarization() {
     const apiKey = stored.apiKeys?.[provider];
     
     if (provider !== 'custom' && (!apiKey || apiKey.trim() === '')) {
-      output.innerHTML = `<p>👋 Per riassumere nel Side Panel inserisci una chiave API (consigliata Google Gemini, 100% gratuita) oppure usa la modalità Web gratuita dal popup.</p>`;
+      const msg = chrome.i18n.getMessage('sidepanelMissingKey') || '👋 To summarize in the Side Panel, please enter an API key...';
+      output.innerHTML = `<p>${msg}</p>`;
       openSettingsModal();
       loader.classList.add('hidden');
       btnStop.classList.add('hidden');
@@ -186,7 +187,7 @@ function copySummary() {
   navigator.clipboard.writeText(text).then(() => {
     const btn = document.getElementById('btn-copy');
     const orig = btn.innerHTML;
-    btn.innerHTML = '✅ Copied!';
+    btn.innerHTML = chrome.i18n.getMessage('copied') || '✅ Copied!';
     setTimeout(() => { btn.innerHTML = orig; }, 2000);
   });
 }
@@ -212,19 +213,19 @@ function updateHelpLink() {
   const link = document.getElementById('modal-help-link');
   if (provider === 'gemini') {
     link.href = 'https://aistudio.google.com/app/apikey';
-    link.textContent = 'Ottieni chiave gratis su Google AI Studio ↗';
+    link.textContent = chrome.i18n.getMessage('helpGemini') || 'Ottieni chiave gratis su Google AI Studio ↗';
     link.style.display = 'block';
   } else if (provider === 'groq') {
     link.href = 'https://console.groq.com/keys';
-    link.textContent = 'Ottieni chiave gratis su GroqCloud ↗';
+    link.textContent = chrome.i18n.getMessage('helpGroq') || 'Ottieni chiave gratis su GroqCloud ↗';
     link.style.display = 'block';
   } else if (provider === 'anthropic') {
     link.href = 'https://console.anthropic.com/settings/keys';
-    link.textContent = 'Ottieni chiave su Anthropic Console ↗';
+    link.textContent = chrome.i18n.getMessage('helpAnthropic') || 'Ottieni chiave su Anthropic Console ↗';
     link.style.display = 'block';
   } else if (provider === 'openai') {
     link.href = 'https://platform.openai.com/api-keys';
-    link.textContent = 'Ottieni chiave su OpenAI Platform ↗';
+    link.textContent = chrome.i18n.getMessage('helpOpenai') || 'Ottieni chiave su OpenAI Platform ↗';
     link.style.display = 'block';
   } else {
     link.style.display = 'none';

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="extName">YT Transcript Summarizer - Settings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="logo">
+        <svg width="24" height="24" viewBox="0 0 28 28" fill="none">
+          <rect width="28" height="28" rx="8" fill="url(#g1)"/>
+          <path d="M11 9.5l8 4.5-8 4.5V9.5z" fill="white"/>
+          <defs>
+            <linearGradient id="g1" x1="0" y1="0" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#7c3aed"/>
+              <stop offset="100%" stop-color="#2563eb"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <span data-i18n="extName">YT Summarizer</span>
+      </div>
+      <h1 data-i18n="optionsTitle">Settings</h1>
+    </header>
+    
+    <main class="content">
+      <div class="card">
+        <h2 class="card-title" data-i18n="apiSettingsTitle">API Configuration</h2>
+        <p class="card-desc" data-i18n="apiSettingsDesc">Configure your preferred AI provider for generating summaries in the side panel.</p>
+        
+        <div class="field">
+          <label data-i18n="providerLabel">AI Provider</label>
+          <select id="provider-select">
+            <option value="gemini" data-i18n="providerGemini">Google Gemini (Recommended/Free)</option>
+            <option value="anthropic" data-i18n="providerAnthropic">Anthropic Claude</option>
+            <option value="openai" data-i18n="providerOpenai">OpenAI</option>
+            <option value="groq" data-i18n="providerGroq">Groq</option>
+            <option value="openrouter" data-i18n="providerOpenrouter">OpenRouter</option>
+            <option value="custom" data-i18n="providerCustom">Custom</option>
+          </select>
+        </div>
+        
+        <div class="field">
+          <label data-i18n="apiKeyLabel">API Key</label>
+          <input type="password" id="api-key" placeholder="Enter API Key...">
+          <a id="help-link" href="#" target="_blank" class="help-link"></a>
+        </div>
+        
+        <div class="actions">
+          <button id="btn-save" class="btn primary" data-i18n="btnSave">Save Settings</button>
+          <span id="save-msg" class="save-msg hidden" data-i18n="saveSuccess">Settings saved!</span>
+        </div>
+      </div>
+    </main>
+  </div>
+  
+  <script type="module" src="modules/i18n.js"></script>
+  <script type="module" src="options.js"></script>
+</body>
+</html>

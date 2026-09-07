@@ -272,6 +272,14 @@ Extensions like *Prevent Duplicate Tabs* can block Strategy 4 (tab fallback) fro
 
 ---
 
+## Roadmap
+
+Future improvements planned for this extension:
+
+1. **Code Minification & Bundling**: Transitioning the build process to use tools like Vite or Rollup to bundle and minify the JavaScript and CSS assets. This will significantly reduce the extension's footprint, improve load times, and offer a basic level of code obfuscation.
+
+---
+
 ## License
 
 MIT
