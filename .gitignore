@@ -37,3 +37,9 @@ web_extension/_metadata/
 # Local handoff/working notes (not part of the shipped project)
 web_extension/TESTING-TODO.md
 web_extension/NOTES.md
+web_extension/PLAN.md
+web_extension/IMPROVEMENTS.md
+web_extension/ONBOARDING_UX.md
+web_extension/PROMPTS.md
+web_extension/AGENT-RULES.md
+web_extension/phasekit.json
