@@ -24,8 +24,12 @@
     "notifications",
     "alarms",
     "offscreen",
-    "declarativeNetRequest"
+    "declarativeNetRequest",
+    "sidePanel"
   ],
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
   "declarative_net_request": {
     "rule_resources": [
       {
@@ -55,6 +59,15 @@
     "http://*/*"
   ],
   "content_scripts": [
+    {
+      "matches": [
+        "*://*.youtube.com/watch*"
+      ],
+      "js": [
+        "content_youtube.js"
+      ],
+      "run_at": "document_idle"
+    },
     {
       "matches": [
         "https://claude.ai/*"
