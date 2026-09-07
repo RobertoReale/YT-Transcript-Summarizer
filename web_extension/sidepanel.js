@@ -32,6 +32,36 @@ async function init() {
       }
     }
   });
+
+  chrome.runtime.onMessage.addListener((message) => {
+    if (message.type === 'YOUTUBE_NAVIGATED') {
+      fetchVideoInfo().then(() => {
+        checkCacheAndResetUI();
+      });
+    }
+  });
+}
+
+async function checkCacheAndResetUI() {
+  if (!currentVideoId) return;
+  const key = `summary_cache_${currentVideoId}`;
+  const data = await chrome.storage.local.get(key);
+  const cached = data[key];
+
+  const btnSum = document.getElementById('btn-summarize');
+  const output = document.getElementById('summary-output');
+  
+  stopSummarization();
+  
+  if (cached) {
+    btnSum.innerText = '🔄 Rigenera';
+    output.innerHTML = parseMarkdown(cached);
+    document.getElementById('btn-copy').disabled = false;
+  } else {
+    btnSum.innerText = 'Summarize';
+    output.innerHTML = '';
+    document.getElementById('btn-copy').disabled = true;
+  }
 }
 
 async function fetchVideoInfo() {
@@ -40,6 +70,7 @@ async function fetchVideoInfo() {
     if (res && res.title) {
       document.getElementById('video-title').textContent = res.title;
       currentVideoId = res.videoId;
+      await checkCacheAndResetUI();
     }
   } catch (err) {
     console.error('Could not fetch video info', err);
@@ -112,6 +143,8 @@ async function startSummarization() {
       const contentArea = document.getElementById('content-area');
       contentArea.scrollTop = contentArea.scrollHeight;
     });
+
+    await chrome.storage.local.set({ [`summary_cache_${currentVideoId}`]: rawMarkdown });
 
   } catch (err) {
     output.innerHTML = `<p style="color:var(--danger)">Error: ${err.message}</p>`;

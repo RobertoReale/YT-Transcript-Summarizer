@@ -27,3 +27,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 });
+
+document.addEventListener('yt-navigate-finish', () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const videoId = urlParams.get('v');
+  if (videoId) {
+    chrome.runtime.sendMessage({ type: 'YOUTUBE_NAVIGATED', videoId });
+  }
+});
