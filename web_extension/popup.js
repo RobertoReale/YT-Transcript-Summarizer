@@ -4,7 +4,7 @@ import { state } from './modules/popup-state.js';
 import { renderHistory, clearHistory } from './modules/popup-history.js';
 import { populateTTSVoices, sendTTS, ttsPlay, ttsPauseResume, ttsStop, updateTTSStatus } from './modules/popup-tts.js';
 import { applyProvider, persistSettings, saveSettings, updatePromptPreview, togglePromptEditor } from './modules/popup-settings.js';
-import { renderJobs, updateJob, setUIAsRunning, setUIAsStopped, setMode, setChip, setOutputFormat, setSummaryLength, toggleJobSettings, updateJobEditBtn, setJobFormat, setJobLength, resetJobSettings, setJobLang, setJobSplit, setSplit, refreshSplitCapNote } from './modules/popup-render.js';
+import { renderJobs, updateJob, setUIAsRunning, setUIAsStopped, setMode, setChip, setOutputFormat, setSummaryLength, toggleJobSettings, updateJobEditBtn, setJobFormat, setJobLength, resetJobSettings, setJobLang } from './modules/popup-render.js';
 
 const PANELS = ['panel-settings', 'panel-history', 'panel-tts'];
 
@@ -133,8 +133,6 @@ async function init() {
   if (ttsState) updateTTSStatus(ttsState);
   if (ttsLocalUrl) document.getElementById('tts-local-url').value = ttsLocalUrl;
   document.getElementById('web-delay').value = webDelay ?? 30;
-  setSplit(chunkParts ?? 1);
-  setChip('chip-merge', !!chunkMerge);
 
   const currentLang = transcriptLang || 'auto';
   document.getElementById('transcript-lang-select').value = currentLang;
@@ -165,9 +163,12 @@ async function init() {
   if (currentAutoSubmit) document.getElementById('chip-autopaste').classList.add('locked');
   // Last, deliberately: the note depends on the provider, the mode AND the
   // auto-submit chip, and all three are only settled by this point.
-  refreshSplitCapNote();
 
   // ── Event listeners ───────────────────────────────────────────────────────
+  
+  document.getElementById('open-sidepanel-btn').addEventListener('click', () => {
+    chrome.runtime.sendMessage({ type: 'OPEN_SIDEPANEL' });
+  });
 
   document.getElementById('btn-theme').addEventListener('click', toggleTheme);
   document.getElementById('btn-history').addEventListener('click', () => togglePanel('panel-history', renderHistory));
@@ -263,12 +264,7 @@ async function init() {
     }
   });
 
-  // ── Inline split selector ────────────────────────────────────────────────
-  document.getElementById('split-select-inline').addEventListener('change', async (e) => {
-    setSplit(parseInt(e.target.value, 10) || 1);
-    await persistSettings();
-    renderJobs(); // the per-video rows show the global value as their default
-  });
+
 
   document.getElementById('url-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') addUrl();
@@ -315,8 +311,6 @@ async function init() {
         } else {
           document.getElementById('chip-autopaste').classList.remove('locked');
         }
-        // The composer cap only forces extra parts when we may press Send.
-        refreshSplitCapNote();
       }
       persistSettings();
     });
@@ -379,10 +373,6 @@ async function init() {
     if (langSel && !langSel.disabled) {
       setJobLang(Number(langSel.dataset.jobId), langSel.value);
       return;
-    }
-    const splitSel = e.target.closest('.job-split-select');
-    if (splitSel && !splitSel.disabled) {
-      setJobSplit(Number(splitSel.dataset.jobId), splitSel.value ? parseInt(splitSel.value, 10) : null);
     }
   });
 

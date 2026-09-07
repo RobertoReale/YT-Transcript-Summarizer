@@ -26,6 +26,7 @@
     <span id="app-version" class="app-version"></span>
   </div>
   <div class="header-actions">
+    <button id="open-sidepanel-btn" class="icon-btn" title="Open in Side Panel">S</button>
     <button id="btn-theme" class="icon-btn" title="Toggle theme">🌙</button>
     <button id="btn-history" class="icon-btn" title="Video history">📋</button>
     <button id="btn-tts" class="icon-btn" title="Text-to-Speech">🔊</button>
@@ -203,22 +204,6 @@
       <option value="auto">🌐 Auto</option>
     </select>
     <span class="chips-sep"></span>
-    <select id="split-select-inline" class="lang-select-inline" title="Split the transcript into this many equal parts, sent one after another">
-      <option value="1">✂️ 1 part</option>
-      <option value="2">✂️ 2 parts</option>
-      <option value="3">✂️ 3 parts</option>
-      <option value="4">✂️ 4 parts</option>
-      <option value="5">✂️ 5 parts</option>
-      <option value="6">✂️ 6 parts</option>
-      <option value="8">✂️ 8 parts</option>
-      <option value="10">✂️ 10 parts</option>
-    </select>
-    <button class="chip hidden" id="chip-merge" data-cb="chunk-merge-cb" title="After the last part, ask for one more answer that fuses the partial summaries into a single summary">🧩 Merge parts</button>
-    <!-- Gemini truncates a message at 32 000 characters, so a long transcript is
-         split whether or not the user asked for it. Saying so only in the status
-         line, once the tab is already open, made "1 part" look like a lie. -->
-    <span class="split-cap-note hidden" id="split-cap-note"></span>
-    <span class="chips-sep"></span>
     <button class="chip" id="chip-autopaste" data-cb="autopaste-cb" title="Automatically paste the transcript into the AI chat when the tab opens">📋 Auto-paste</button>
     <button class="chip" id="chip-autosubmit" data-cb="autosubmit-cb" title="Automatically submit the message after pasting (Auto-paste is required and will be enabled)">↵ Auto-submit</button>
     <button class="chip" id="chip-save-file" data-cb="save-file-cb" title="Save the raw transcript as a .txt file in your Downloads folder">💾 Save .txt</button>
@@ -247,7 +232,6 @@
 <input type="checkbox" id="timestamps-cb" checked style="display:none">
 <input type="checkbox" id="combined-prompt-cb" style="display:none">
 <input type="checkbox" id="thinking-cb" style="display:none">
-<input type="checkbox" id="chunk-merge-cb" style="display:none">
 
 <div class="prompt-section" id="prompt-section">
   <button class="prompt-header" id="btn-prompt-toggle">
