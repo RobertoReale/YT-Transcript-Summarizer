@@ -75,11 +75,37 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 });
 
 // ── TTS Offscreen ─────────────────────────────────────────────────────────────
-chrome.runtime.onMessage.addListener((msg, sender) => {
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === 'tts-state' && sender.url === chrome.runtime.getURL('tts_offscreen.html')) {
     const { type, ...state } = msg;
     chrome.storage.local.set({ ttsState: state }).catch(() => {});
     safePost(msg);
+    return;
+  }
+  
+  if (msg.type === 'OPEN_SIDEPANEL') {
+    chrome.windows.getCurrent({ populate: false }, (win) => {
+      chrome.sidePanel.open({ windowId: win.id });
+    });
+    return;
+  }
+
+  if (msg.type === 'GET_TRANSCRIPT') {
+    (async () => {
+      try {
+        const { settings = {} } = await chrome.storage.local.get('settings');
+        const transcriptLang = settings.transcriptLang || 'en';
+        const result = await acquireTranscript(msg.videoId, transcriptLang, (logMsg) => console.log(logMsg));
+        if (result && result.transcript) {
+          sendResponse({ transcript: result.transcript });
+        } else {
+          sendResponse({ error: 'No transcript available' });
+        }
+      } catch (err) {
+        sendResponse({ error: err.message });
+      }
+    })();
+    return true;
   }
 });
 
