@@ -42,6 +42,35 @@
     </div>
   </main>
 
+  <div id="settings-modal" class="modal hidden">
+    <div class="modal-overlay" id="modal-overlay"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">Settings</h2>
+        <button id="btn-close-modal" class="icon-btn">✖</button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label>AI Provider</label>
+          <select id="modal-provider-select">
+            <option value="gemini">Google Gemini (Recommended/Free)</option>
+            <option value="anthropic">Anthropic Claude</option>
+            <option value="openai">OpenAI</option>
+            <option value="groq">Groq</option>
+            <option value="openrouter">OpenRouter</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>API Key</label>
+          <input type="password" id="modal-api-key" placeholder="Enter API Key...">
+          <a id="modal-help-link" href="https://aistudio.google.com/app/apikey" target="_blank" class="help-link">Ottieni chiave gratis su Google AI Studio ↗</a>
+        </div>
+        <button id="btn-save-settings" class="btn primary">Save & Close</button>
+      </div>
+    </div>
+  </div>
+
   <footer class="footer">
     <div class="action-row">
       <button id="btn-summarize" class="btn primary" disabled>Summarize</button>

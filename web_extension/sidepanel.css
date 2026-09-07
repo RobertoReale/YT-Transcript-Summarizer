@@ -227,3 +227,81 @@ body {
 .hidden {
   display: none !important;
 }
+
+/* Modal Styles */
+.modal {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.modal-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(2px);
+}
+.modal-content {
+  position: relative;
+  width: 90%;
+  max-width: 320px;
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  display: flex;
+  flex-direction: column;
+  z-index: 101;
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-color-alt);
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+.modal-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+.modal-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.field label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.field select, .field input {
+  padding: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-color);
+  color: var(--text-color);
+  font-family: inherit;
+}
+.help-link {
+  font-size: 11px;
+  color: var(--primary);
+  text-decoration: none;
+  margin-top: 4px;
+}
+.help-link:hover {
+  text-decoration: underline;
+}
+#btn-save-settings {
+  margin-top: 8px;
+}

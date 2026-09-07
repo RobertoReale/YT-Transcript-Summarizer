@@ -1001,3 +1001,25 @@ body.dark .lang-select-inline {
 body.dark .job-lang-select, body.dark .job-split-select {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'%3E%3Cpath d='M1 1l3 3 3-3' stroke='%2394a3b8' stroke-width='1.2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
 }
+
+/* Side Panel Launch Button in Popup */
+.sidepanel-launch-btn {
+  background: linear-gradient(135deg, #7c3aed, #2563eb);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+  box-shadow: 0 2px 5px rgba(124, 58, 237, 0.3);
+  margin-right: 4px;
+}
+.sidepanel-launch-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+.sidepanel-launch-btn:active {
+  transform: translateY(0);
+}

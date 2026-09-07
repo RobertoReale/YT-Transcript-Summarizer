@@ -19,9 +19,11 @@ async function init() {
   document.getElementById('btn-summarize').addEventListener('click', startSummarization);
   document.getElementById('btn-stop').addEventListener('click', stopSummarization);
   document.getElementById('btn-copy').addEventListener('click', copySummary);
-  document.getElementById('btn-settings').addEventListener('click', () => {
-    chrome.runtime.openOptionsPage();
-  });
+  document.getElementById('btn-settings').addEventListener('click', openSettingsModal);
+  document.getElementById('btn-close-modal').addEventListener('click', closeSettingsModal);
+  document.getElementById('modal-overlay').addEventListener('click', closeSettingsModal);
+  document.getElementById('btn-save-settings').addEventListener('click', saveSettings);
+  document.getElementById('modal-provider-select').addEventListener('change', updateHelpLink);
 
   document.getElementById('summary-output').addEventListener('click', (e) => {
     if (e.target.classList.contains('timestamp-link')) {
@@ -114,11 +116,22 @@ async function startSummarization() {
       'transcriptLang', 'outputFormat', 'summaryLength', 'customPrompt'
     ]);
     
-    const provider = stored.provider || 'anthropic';
+    const provider = stored.provider || 'gemini';
+    const apiKey = stored.apiKeys?.[provider];
+    
+    if (provider !== 'custom' && (!apiKey || apiKey.trim() === '')) {
+      output.innerHTML = `<p>👋 Per riassumere nel Side Panel inserisci una chiave API (consigliata Google Gemini, 100% gratuita) oppure usa la modalità Web gratuita dal popup.</p>`;
+      openSettingsModal();
+      loader.classList.add('hidden');
+      btnStop.classList.add('hidden');
+      btnSum.classList.remove('hidden');
+      return;
+    }
+
     const config = {
       provider,
       model: stored.models?.[provider],
-      apiKey: stored.apiKeys?.[provider],
+      apiKey: apiKey,
       endpoint: stored.customEndpointUrl
     };
 
@@ -176,6 +189,65 @@ function copySummary() {
     btn.innerHTML = '✅ Copied!';
     setTimeout(() => { btn.innerHTML = orig; }, 2000);
   });
+}
+
+async function openSettingsModal() {
+  const stored = await chrome.storage.local.get(['provider', 'apiKeys']);
+  const provider = stored.provider || 'gemini';
+  const apiKeys = stored.apiKeys || {};
+  
+  document.getElementById('modal-provider-select').value = provider;
+  document.getElementById('modal-api-key').value = apiKeys[provider] || '';
+  
+  updateHelpLink();
+  document.getElementById('settings-modal').classList.remove('hidden');
+}
+
+function closeSettingsModal() {
+  document.getElementById('settings-modal').classList.add('hidden');
+}
+
+function updateHelpLink() {
+  const provider = document.getElementById('modal-provider-select').value;
+  const link = document.getElementById('modal-help-link');
+  if (provider === 'gemini') {
+    link.href = 'https://aistudio.google.com/app/apikey';
+    link.textContent = 'Ottieni chiave gratis su Google AI Studio ↗';
+    link.style.display = 'block';
+  } else if (provider === 'groq') {
+    link.href = 'https://console.groq.com/keys';
+    link.textContent = 'Ottieni chiave gratis su GroqCloud ↗';
+    link.style.display = 'block';
+  } else if (provider === 'anthropic') {
+    link.href = 'https://console.anthropic.com/settings/keys';
+    link.textContent = 'Ottieni chiave su Anthropic Console ↗';
+    link.style.display = 'block';
+  } else if (provider === 'openai') {
+    link.href = 'https://platform.openai.com/api-keys';
+    link.textContent = 'Ottieni chiave su OpenAI Platform ↗';
+    link.style.display = 'block';
+  } else {
+    link.style.display = 'none';
+  }
+  
+  chrome.storage.local.get(['apiKeys']).then(stored => {
+    const apiKeys = stored.apiKeys || {};
+    document.getElementById('modal-api-key').value = apiKeys[provider] || '';
+  });
+}
+
+async function saveSettings() {
+  const provider = document.getElementById('modal-provider-select').value;
+  const key = document.getElementById('modal-api-key').value.trim();
+  
+  const stored = await chrome.storage.local.get(['apiKeys']);
+  const apiKeys = stored.apiKeys || {};
+  if (key) {
+    apiKeys[provider] = key;
+  }
+  
+  await chrome.storage.local.set({ provider, apiKeys });
+  closeSettingsModal();
 }
 
 document.addEventListener('DOMContentLoaded', init);
