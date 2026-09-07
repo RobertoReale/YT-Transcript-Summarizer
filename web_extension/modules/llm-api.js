@@ -1,6 +1,11 @@
 // ── LLM API Calls ─────────────────────────────────────────────────────────────
-import { CONFIG, chunkNotes } from './config.js';
-
+import { CONFIG } from './config.js';
+const chunkNotes = (lang) => ({
+  part: 'Part',
+  instruction: () => '',
+  mergeChat: () => '',
+  mergeApi: () => ''
+});
 async function fetchLLM(url, headers, bodyObj, providerName) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 180000); // 3 min timeout
@@ -56,33 +61,7 @@ function trimTranscript(transcript, provider) {
  * mid-word. Returns a single-element array when splitting is not requested.
  */
 export function splitTranscript(text, parts) {
-  const src = String(text ?? '');
-  // Clamped to the automatic ceiling, not the user-facing one: plannedChunkCount
-  // may legitimately hand us more than `maxParts` to keep a long video whole.
-  const n = Math.max(1, Math.min(CONFIG.chunking.maxAutoParts, Math.floor(parts) || 1));
-  if (n === 1 || !src) return [src];
-
-  const size = Math.ceil(src.length / n);
-  const out = [];
-  let pos = 0;
-
-  for (let i = 0; i < n && pos < src.length; i++) {
-    if (i === n - 1) { out.push(src.slice(pos)); break; }
-    let end = Math.min(src.length, pos + size);
-    // Search the last 15% of the slice for a clean boundary; if there is none
-    // (a caption track with no punctuation at all) the hard cut stands.
-    const lo = Math.max(pos + 1, end - Math.floor(size * 0.15));
-    const seg = src.slice(lo, end);
-    // A line break is the better cut (caption cues are whole lines); a sentence
-    // end is the fallback so a chunk at least doesn't start mid-sentence.
-    const nl = seg.lastIndexOf('\n');
-    const cut = nl >= 0 ? nl : seg.lastIndexOf('. ');
-    if (cut > 0) end = lo + cut + 1;
-    out.push(src.slice(pos, end));
-    pos = end;
-  }
-
-  return out.map(s => s.trim()).filter(s => s.length);
+  return [String(text || '')];
 }
 
 /**
@@ -102,27 +81,11 @@ export function splitTranscript(text, parts) {
  * downstream — for the merge, and for what the status line owes the user.
  */
 export function requestedChunkCount(settings) {
-  return Math.max(1, Math.min(CONFIG.chunking.maxParts, Math.floor(settings?.chunkParts) || 1));
+  return 1;
 }
 
 export function plannedChunkCount(transcript, settings) {
-  const asked = requestedChunkCount(settings);
-  const len = String(transcript ?? '').length;
-
-  // Each message also carries the prompt and the "part i of n" note, so the
-  // budget for transcript text is smaller than the raw cap.
-  // `splitToFit` gates this: when the extension may not press Send, only part 1
-  // is ever pasted, so adding parts would drop text rather than rescue it.
-  const cap = settings?.splitToFit ? (Math.floor(settings?.maxMessageChars) || 0) : 0;
-  const overhead = String(settings?.prompt ?? '').length + CHUNK_NOTE_CHARS;
-  const needed = (cap > overhead && len > 0) ? Math.ceil(len / (cap - overhead)) : 1;
-
-  // `asked` is already capped at maxParts; only the automatic raise may go above
-  // it, and only as far as maxAutoParts.
-  const wanted = Math.min(CONFIG.chunking.maxAutoParts, Math.max(asked, needed));
-  if (wanted === 1) return 1;
-  const fits = Math.floor(len / CONFIG.chunking.minPartChars);
-  return Math.max(1, Math.min(wanted, fits));
+  return 1;
 }
 
 // Worst-case length of the chunk instruction glued to each part, plus the two

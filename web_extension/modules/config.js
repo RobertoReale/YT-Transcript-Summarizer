@@ -47,104 +47,13 @@ export const CONFIG = {
     openai:     350000,   // 128k-token context
     gemini:     900000,   // 1M-token context
     openrouter: 300000,   // unknown model — conservative
+    groq:       100000,   // 128k-token context
     custom:     200000,   // typically a small local model
     default:    200000
-  },
-
-  // Optional splitting of a transcript into several sequential requests. Off by
-  // default (parts = 1): it multiplies cost and latency, and only pays off on
-  // videos long enough that one request would truncate or lose detail.
-  chunking: {
-    maxParts:      10,     // upper bound for the UI / sanitizer
-    // Ceiling for the AUTOMATIC raise only (web mode, composer cap). It is
-    // deliberately higher than `maxParts`: the two limits exist for opposite
-    // reasons. `maxParts` caps what the user may *ask* for, to stop them paying
-    // for pointless extra requests. This one caps a raise the user did not ask
-    // for, whose whole purpose is to keep the video from being silently cut —
-    // holding it at 10 meant a video over ~5 h lost its tail no matter what.
-    // The cost is run length (each part waits for a full reply), which is why
-    // it is not unbounded; past this the overflow warning takes over.
-    maxAutoParts:  20,
-    defaultParts:  1,      // 1 = disabled
-    // The only case where the requested number is not honoured downwards:
-    // splitting a 3-minute video into 8 pieces would just be 8 pointless
-    // requests.
-    minPartChars:  2000
-  },
-
-  // Web mode types each message into the provider's own composer, which has its
-  // own hard limit — far below the model's context. Gemini silently keeps the
-  // first 32 000 characters and drops the rest, so a "2 parts" split of a long
-  // video lost ~40% of it without a word anywhere. A value here raises the
-  // number of parts until every message fits; null means "no known limit, do
-  // not split on this account".
-  // Only measure-backed numbers belong here: a made-up cap costs the user extra
-  // round-trips for nothing.
-  // NOTE ON `null`: the lookup is `[provider] ?? default`, so an explicit `null`
-  // here falls through to `default`. The entries below are documentation of what
-  // was measured — if `default` ever becomes a number, revisit them.
-  maxWebMessageChars: {
-    // Measured 2026-07-27 by pasting 300 000 chars of fixed-width numbered lines
-    // into the live composer and reading the DOM back (nothing submitted).
-    gemini:    32000,   // truncates at EXACTLY 32 000 — cut mid-word at line 543/5085
-    openai:    null,    // no cap: 700 000 chars pasted back intact, all 11 865 lines
-    anthropic: null,    // no cap: a real Ctrl+V of 300 000 chars is converted into a
-                        // "PASTED" attachment instead of being truncated, and the
-                        // model reads it whole. The extension inserts text via
-                        // execCommand rather than pasting, so it stays plain text.
-    default:   null
   }
 };
 
-// Wording injected around each chunk when a transcript is split. Keyed like
-// PROMPTS so the partial summaries stay in the user's language; falls back to
-// English for any language without an entry.
-// `instruction` rides along with each chunk; `mergeChat` is the extra message
-// sent to a web chat once every part has been posted (the conversation itself
-// holds the partial summaries); `mergeApi` heads the final API call, which is
-// followed by the partial summaries as text.
-export const CHUNK_NOTES = {
-  en: {
-    part: 'Part',
-    instruction: (i, n) => `This is part ${i} of ${n} of the transcript of ONE single video. Summarize only this part, following the instructions above. Do not write an introduction or a conclusion about the whole video — the parts will be joined together afterwards.`,
-    mergeChat: (n) => `You have now seen all ${n} parts of the video. Write a SINGLE unified summary of the whole video, merging the ${n} partial summaries above: remove repetitions, keep every distinct point, and follow the formatting requested at the start. Output only the final summary.`,
-    mergeApi: (n) => `Below are ${n} partial summaries of consecutive parts of ONE single video. Merge them into a SINGLE unified summary of the whole video: remove repetitions, keep every distinct point, and follow the formatting requested above. Output only the final summary.`
-  },
-  it: {
-    part: 'Parte',
-    instruction: (i, n) => `Questa è la parte ${i} di ${n} della trascrizione di UN SOLO video. Riassumi solo questa parte, seguendo le istruzioni sopra. Non scrivere introduzioni o conclusioni sull'intero video — le parti verranno unite successivamente.`,
-    mergeChat: (n) => `Ora hai visto tutte le ${n} parti del video. Scrivi UN UNICO riassunto complessivo dell'intero video, unendo i ${n} riassunti parziali qui sopra: elimina le ripetizioni, conserva ogni punto distinto e rispetta il formato richiesto all'inizio. Restituisci solo il riassunto finale.`,
-    mergeApi: (n) => `Qui sotto trovi ${n} riassunti parziali di parti consecutive di UN SOLO video. Uniscili in UN UNICO riassunto complessivo dell'intero video: elimina le ripetizioni, conserva ogni punto distinto e rispetta il formato richiesto sopra. Restituisci solo il riassunto finale.`
-  },
-  es: {
-    part: 'Parte',
-    instruction: (i, n) => `Esta es la parte ${i} de ${n} de la transcripción de UN SOLO video. Resume únicamente esta parte, siguiendo las instrucciones anteriores. No escribas una introducción ni una conclusión sobre el video completo — las partes se unirán después.`,
-    mergeChat: (n) => `Ya has visto las ${n} partes del video. Escribe UN ÚNICO resumen unificado del video completo, fusionando los ${n} resúmenes parciales anteriores: elimina las repeticiones, conserva todos los puntos distintos y respeta el formato pedido al principio. Devuelve solo el resumen final.`,
-    mergeApi: (n) => `A continuación hay ${n} resúmenes parciales de partes consecutivas de UN SOLO video. Fusiónalos en UN ÚNICO resumen del video completo: elimina las repeticiones, conserva todos los puntos distintos y respeta el formato pedido arriba. Devuelve solo el resumen final.`
-  },
-  fr: {
-    part: 'Partie',
-    instruction: (i, n) => `Ceci est la partie ${i} sur ${n} de la transcription d'UNE SEULE vidéo. Résume uniquement cette partie, en suivant les instructions ci-dessus. N'écris ni introduction ni conclusion sur la vidéo entière — les parties seront assemblées ensuite.`,
-    mergeChat: (n) => `Tu as maintenant vu les ${n} parties de la vidéo. Rédige UN SEUL résumé unifié de la vidéo entière, en fusionnant les ${n} résumés partiels ci-dessus : supprime les répétitions, conserve chaque point distinct et respecte le format demandé au début. Ne renvoie que le résumé final.`,
-    mergeApi: (n) => `Voici ${n} résumés partiels de parties consécutives d'UNE SEULE vidéo. Fusionne-les en UN SEUL résumé de la vidéo entière : supprime les répétitions, conserve chaque point distinct et respecte le format demandé ci-dessus. Ne renvoie que le résumé final.`
-  },
-  de: {
-    part: 'Teil',
-    instruction: (i, n) => `Dies ist Teil ${i} von ${n} des Transkripts EINES einzigen Videos. Fasse nur diesen Teil zusammen und folge dabei den obigen Anweisungen. Schreibe keine Einleitung und kein Fazit über das gesamte Video — die Teile werden anschließend zusammengefügt.`,
-    mergeChat: (n) => `Du hast jetzt alle ${n} Teile des Videos gesehen. Schreibe EINE einzige zusammenhängende Zusammenfassung des gesamten Videos, indem du die ${n} Teilzusammenfassungen oben zusammenführst: entferne Wiederholungen, behalte jeden eigenständigen Punkt und halte dich an das anfangs geforderte Format. Gib nur die finale Zusammenfassung aus.`,
-    mergeApi: (n) => `Unten stehen ${n} Teilzusammenfassungen aufeinanderfolgender Abschnitte EINES einzigen Videos. Führe sie zu EINER einzigen Zusammenfassung des gesamten Videos zusammen: entferne Wiederholungen, behalte jeden eigenständigen Punkt und halte dich an das oben geforderte Format. Gib nur die finale Zusammenfassung aus.`
-  },
-  pt: {
-    part: 'Parte',
-    instruction: (i, n) => `Esta é a parte ${i} de ${n} da transcrição de UM único vídeo. Resume apenas esta parte, seguindo as instruções acima. Não escrevas uma introdução nem uma conclusão sobre o vídeo inteiro — as partes serão unidas depois.`,
-    mergeChat: (n) => `Já viste as ${n} partes do vídeo. Escreve UM ÚNICO resumo unificado do vídeo inteiro, juntando os ${n} resumos parciais acima: elimina repetições, mantém todos os pontos distintos e respeita o formato pedido no início. Devolve apenas o resumo final.`,
-    mergeApi: (n) => `Abaixo estão ${n} resumos parciais de partes consecutivas de UM único vídeo. Junta-os num ÚNICO resumo do vídeo inteiro: elimina repetições, mantém todos os pontos distintos e respeita o formato pedido acima. Devolve apenas o resumo final.`
-  }
-};
 
-export function chunkNotes(lang) {
-  return CHUNK_NOTES[lang] || CHUNK_NOTES.en;
-}
 
 // The transcript carries `[m:ss]` anchors every half minute, but a model only
 // uses them if it is told to. Deliberately NOT folded into PROMPTS: `isPreset()`
@@ -210,15 +119,27 @@ export const PROVIDERS = {
   gemini: {
     name: 'Google Gemini',
     models: [
-      { value: 'gemini-2.0-flash',  label: 'gemini-2.0-flash (Recommended)' },
+      { value: 'gemini-2.5-flash',  label: 'gemini-2.5-flash (Fast & Recommended)' },
+      { value: 'gemini-2.0-flash',  label: 'gemini-2.0-flash' },
       { value: 'gemini-1.5-pro',    label: 'gemini-1.5-pro' },
-      { value: 'gemini-1.5-flash',  label: 'gemini-1.5-flash (Fast)' },
+      { value: 'gemini-1.5-flash',  label: 'gemini-1.5-flash' },
     ],
-    defaultModel:      'gemini-2.0-flash',
+    defaultModel:      'gemini-2.5-flash',
     supportsThinking:  false,
     hasWebUI:          true,
     apiKeyLabel:       'API Key (Google AI Studio)',
     apiKeyPlaceholder: 'AIza...',
+  },
+  groq: {
+    name: 'Groq',
+    models: [
+      { value: 'llama-3.3-70b-versatile', label: 'llama-3.3-70b-versatile (Recommended)' }
+    ],
+    defaultModel:      'llama-3.3-70b-versatile',
+    supportsThinking:  false,
+    hasWebUI:          false,
+    apiKeyLabel:       'API Key',
+    apiKeyPlaceholder: 'gsk_...',
   },
   openrouter: {
     name: 'OpenRouter',

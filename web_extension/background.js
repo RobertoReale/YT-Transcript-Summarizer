@@ -677,7 +677,7 @@ function webOverflowNote(web, providerLabel) {
 function webChunkSettings(base, provider, autoSubmit) {
   return {
     ...base,
-    maxMessageChars: CONFIG.maxWebMessageChars[provider] ?? CONFIG.maxWebMessageChars.default,
+    maxMessageChars: 0,
     splitToFit: !!autoSubmit
   };
 }
