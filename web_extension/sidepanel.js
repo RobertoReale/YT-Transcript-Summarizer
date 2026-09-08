@@ -86,6 +86,7 @@ async function checkCacheAndResetUI() {
 }
 
 async function fetchVideoInfo() {
+  if (!currentTabId) return;
   try {
     const res = await chrome.tabs.sendMessage(currentTabId, { type: 'GET_VIDEO_INFO' });
     if (res && res.title) {
