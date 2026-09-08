@@ -67,8 +67,6 @@ export async function persistSettings() {
   const includeTimestamps  = document.getElementById('timestamps-cb').checked;
   const summaryLength     = [...document.querySelectorAll('.chip-len')].find(c => c.classList.contains('on'))?.dataset.len || 'normal';
   const webDelay          = Math.max(10, parseInt(document.getElementById('web-delay').value, 10) || 30);
-  const chunkParts        = clamp(parseInt(document.getElementById('split-select-inline').value, 10) || 1, 1, CONFIG.chunking.maxParts);
-  const chunkMerge        = document.getElementById('merge-parts-cb').checked;
 
   const { apiKeys: storedKeys = {}, models: storedModels = {} } =
     await chrome.storage.local.get(['apiKeys', 'models']);
@@ -81,7 +79,7 @@ export async function persistSettings() {
     apiKey: provider === 'anthropic' ? apiKey : (storedKeys.anthropic || ''),
     model:  provider === 'anthropic' ? model  : (storedModels.anthropic || 'claude-sonnet-4-6'),
     transcriptLang, customPrompt, mode, useThinking, autoPaste, autoSubmit, combinedPrompt, saveTranscriptFile, summaryLength, webDelay,
-    chunkParts, chunkMerge, includeTimestamps
+    includeTimestamps
   });
 }
 

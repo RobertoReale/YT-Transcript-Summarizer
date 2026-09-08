@@ -322,8 +322,7 @@ async function processJob(job, settings) {
     const jobSettings = {
       ...settings,
       prompt: effectivePrompt,
-      transcriptLang,
-      chunkParts: job.split ?? settings.chunkParts
+      transcriptLang
     };
 
     await updateJobStatus(job.id, 'active', '📋 Fetching transcript...');
@@ -748,7 +747,7 @@ async function summarizeTranscript(transcript, settings, jobId, appendLog, label
   }
 
   const joined = pieces.join('\n\n');
-  if (!settings.chunkMerge) return { summary: joined, truncated, kept, total, chunks: n, merged: false };
+  return { summary: joined, truncated, kept, total, chunks: n, merged: false };
 
   // Optional extra call: fuse the partials into one summary. If it fails there
   // is no reason to throw away N successful calls — keep the joined parts.
