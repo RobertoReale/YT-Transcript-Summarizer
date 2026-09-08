@@ -398,10 +398,30 @@ async function processJob(job, settings) {
         await saveWebParts(web.parts, displayTitle, videoId);
       }
       const willPaste = !!(settings.autoPaste || settings.autoSubmit);
-      if (willPaste) {
-        await setPendingLLMContent(web.parts, !!settings.autoSubmit, job.id, web.mergePlan);
+      
+      if (web.isSeparate && web.chunks > 1) {
+        for (let i = 0; i < web.parts.length; i++) {
+          if (await batchCancelled()) throw new Error('Interrupted by user');
+          const partWarn = ` (Part ${i + 1}/${web.chunks})`;
+          await updateJobStatus(job.id, 'active', `🌐 Opening ${providerLabel}${partWarn}...`);
+          if (willPaste) {
+            await setPendingLLMContent([web.parts[i]], !!settings.autoSubmit, job.id, null);
+          }
+          await chrome.tabs.create({ url: webUrl, active: true });
+          
+          if (i < web.parts.length - 1) {
+            // Wait for the tab to claim the payload before setting the next one
+            const delay = Math.max(3000, (settings.webDelay ?? 10) * 1000);
+            await updateJobStatus(job.id, 'active', `⏳ Waiting before opening Part ${i + 2}...`);
+            if (await cancellableSleep(delay)) throw new Error('Interrupted by user');
+          }
+        }
+      } else {
+        if (willPaste) {
+          await setPendingLLMContent(web.parts, !!settings.autoSubmit, job.id, web.mergePlan);
+        }
+        await chrome.tabs.create({ url: webUrl, active: true });
       }
-      await chrome.tabs.create({ url: webUrl, active: true });
 
       const splitNote = webSplitNote(web, settings, providerLabel);
       const overflowNote = webOverflowNote(web, providerLabel);
@@ -416,7 +436,7 @@ async function processJob(job, settings) {
       if (willPaste) {
         await pasteWatchAdd(job.id, {
           providerLabel, title: displayTitle, chunks: web.chunks, warn, overflowNote,
-          merged: web.merged, autoSplit: web.autoSplit, autoSubmit: !!settings.autoSubmit
+          merged: web.merged, isSeparate: web.isSeparate, autoSplit: web.autoSplit, autoSubmit: !!settings.autoSubmit
         });
       }
       return;
@@ -601,7 +621,16 @@ async function handlePasteReport(msg) {
 
   let status = 'done';
   let text;
-  if (msg.ok && sent >= total) {
+  
+  if (info.isSeparate && info.chunks > 1) {
+    if (msg.ok) {
+      const note = ` (✂️ ${info.chunks} separate parts)`;
+      text = `✅ Opened ${info.chunks} tabs for ${providerLabel}${scope}${note}${tail}`;
+    } else {
+      status = 'error';
+      text = `❌ Paste into one of the ${providerLabel} tabs failed${scope}${tail}`;
+    }
+  } else if (msg.ok && sent >= total) {
     if (!info.autoSubmit) {
       // Only part 1 was ever pasted, and nothing was submitted. Saying
       // "✅ Sent (✂️ 4 parts)" here would be the old lie in a new place.

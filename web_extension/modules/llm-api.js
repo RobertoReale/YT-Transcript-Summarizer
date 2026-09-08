@@ -166,15 +166,11 @@ export function buildChunkMessages(transcript, settings) {
   // to be able to say which of the two happened: "✂️ 7 parts" after the user
   // picked "1 part" reads as a bug unless the reason travels with it.
   const autoSplit = count > asked;
-  // Whoever asked for a single part asked for a SINGLE summary. Leaving them
-  // with N partial summaries and no whole one would answer a question nobody
-  // put — so the merge is not optional here, and the checkbox (hidden at
-  // "1 part", and therefore carrying whatever it happened to hold from an
-  // earlier setting) does not get a vote. It only governs a deliberate split.
-  const merged = asked === 1 ? true : !!settings.chunkMerge;
+  const isSeparate = settings.chunkMode === 'separate';
+  const merged = !isSeparate && (asked === 1 ? true : !!settings.chunkMerge);
   if (merged) parts.push(mergeChatPrompt(count, lang));
   return {
-    parts, chunks: count, asked, autoSplit, merged,
+    parts, chunks: count, asked, autoSplit, merged, isSeparate,
     mergePlan: merged ? mergePlanFor(settings, count, lang, cap) : null,
     overflow: overflowOf(parts)
   };

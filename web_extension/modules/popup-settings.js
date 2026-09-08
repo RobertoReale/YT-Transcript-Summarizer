@@ -65,6 +65,8 @@ export async function persistSettings() {
   const combinedPrompt    = document.getElementById('combined-prompt-cb').checked;
   const saveTranscriptFile = document.getElementById('save-file-cb').checked;
   const includeTimestamps  = document.getElementById('timestamps-cb').checked;
+  const chunkMode         = document.getElementById('chunk-mode-select')?.value || 'same';
+  const chunkMerge        = document.getElementById('chunk-merge-cb')?.checked ?? true;
   const summaryLength     = [...document.querySelectorAll('.chip-len')].find(c => c.classList.contains('on'))?.dataset.len || 'normal';
   const webDelay          = Math.max(10, parseInt(document.getElementById('web-delay').value, 10) || 30);
 
@@ -79,7 +81,7 @@ export async function persistSettings() {
     apiKey: provider === 'anthropic' ? apiKey : (storedKeys.anthropic || ''),
     model:  provider === 'anthropic' ? model  : (storedModels.anthropic || 'claude-sonnet-4-6'),
     transcriptLang, customPrompt, mode, useThinking, autoPaste, autoSubmit, combinedPrompt, saveTranscriptFile, summaryLength, webDelay,
-    includeTimestamps
+    includeTimestamps, chunkMode, chunkMerge
   });
 }
 

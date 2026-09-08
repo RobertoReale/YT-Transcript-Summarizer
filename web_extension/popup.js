@@ -87,7 +87,7 @@ async function init() {
     'useThinking', 'autoPaste', 'autoSubmit', 'combinedPrompt', 'saveTranscriptFile',
     'outputFormat', 'summaryLength', 'jobs', 'running', 'theme',
     'ttsState', 'ttsRate', 'ttsVoice', 'ttsText', 'webDelay', 'ttsLocalUrl',
-    'includeTimestamps'
+    'includeTimestamps', 'chunkMode', 'chunkMerge'
   ]);
 
   const {
@@ -95,7 +95,7 @@ async function init() {
     useThinking, autoPaste, autoSubmit, combinedPrompt, saveTranscriptFile,
     outputFormat, summaryLength, jobs: savedJobs, running: savedRunning, theme,
     ttsState, ttsRate, ttsVoice, ttsText, webDelay, ttsLocalUrl,
-    includeTimestamps
+    includeTimestamps, chunkMode, chunkMerge
   } = stored;
 
   // Migrate legacy apiKey → apiKeys.anthropic
@@ -133,6 +133,29 @@ async function init() {
   if (ttsState) updateTTSStatus(ttsState);
   if (ttsLocalUrl) document.getElementById('tts-local-url').value = ttsLocalUrl;
   document.getElementById('web-delay').value = webDelay ?? 30;
+
+  const modeSel = document.getElementById('chunk-mode-select');
+  const mergeCb = document.getElementById('chunk-merge-cb');
+  if (modeSel) {
+    modeSel.value = chunkMode || 'same';
+    modeSel.addEventListener('change', () => {
+      if (modeSel.value === 'separate') {
+        mergeCb.checked = false;
+        mergeCb.disabled = true;
+      } else {
+        mergeCb.disabled = false;
+      }
+      persistSettings();
+    });
+  }
+  if (mergeCb) {
+    mergeCb.checked = chunkMerge ?? true;
+    if (chunkMode === 'separate') {
+      mergeCb.checked = false;
+      mergeCb.disabled = true;
+    }
+    mergeCb.addEventListener('change', persistSettings);
+  }
 
   const currentLang = transcriptLang || 'auto';
   document.getElementById('transcript-lang-select').value = currentLang;
