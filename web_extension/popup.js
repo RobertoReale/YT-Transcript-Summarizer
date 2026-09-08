@@ -166,8 +166,16 @@ async function init() {
 
   // ── Event listeners ───────────────────────────────────────────────────────
   
+  let currentWindowId = null;
+  chrome.windows.getCurrent(w => { currentWindowId = w.id; });
+  
   document.getElementById('open-sidepanel-btn').addEventListener('click', () => {
-    chrome.runtime.sendMessage({ type: 'OPEN_SIDEPANEL' });
+    if (currentWindowId) {
+      chrome.sidePanel.open({ windowId: currentWindowId });
+    } else {
+      // Fallback if getCurrent hasn't resolved yet
+      chrome.windows.getCurrent(w => chrome.sidePanel.open({ windowId: w.id }));
+    }
   });
 
   document.getElementById('btn-theme').addEventListener('click', toggleTheme);
