@@ -167,14 +167,30 @@ async function init() {
   // ── Event listeners ───────────────────────────────────────────────────────
   
   let currentWindowId = null;
+  let isSidePanelOpen = false;
+  
   chrome.windows.getCurrent(w => { currentWindowId = w.id; });
+  if (chrome.runtime.getContexts) {
+    chrome.runtime.getContexts({ contextTypes: ['SIDE_PANEL'] }, (contexts) => {
+      isSidePanelOpen = contexts.length > 0;
+    });
+  }
   
   document.getElementById('open-sidepanel-btn').addEventListener('click', () => {
-    if (currentWindowId) {
-      chrome.sidePanel.open({ windowId: currentWindowId });
+    if (isSidePanelOpen) {
+      // Toggle off by disabling and re-enabling
+      chrome.sidePanel.setOptions({ enabled: false }, () => {
+        chrome.sidePanel.setOptions({ enabled: true });
+      });
+      isSidePanelOpen = false;
     } else {
-      // Fallback if getCurrent hasn't resolved yet
-      chrome.windows.getCurrent(w => chrome.sidePanel.open({ windowId: w.id }));
+      if (currentWindowId) {
+        chrome.sidePanel.open({ windowId: currentWindowId });
+        isSidePanelOpen = true;
+      } else {
+        // Fallback if getCurrent hasn't resolved yet
+        chrome.windows.getCurrent(w => chrome.sidePanel.open({ windowId: w.id }));
+      }
     }
   });
 
