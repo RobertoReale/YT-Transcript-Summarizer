@@ -25,7 +25,7 @@ async function streamAnthropic(prompt, model, apiKey, onChunk) {
       'anthropic-dangerous-direct-browser-access': 'true'
     },
     body: JSON.stringify({
-      model: model || 'claude-3-5-sonnet-20241022',
+      model: model || 'claude-sonnet-4-20250514',
       max_tokens: 8192,
       messages: [{ role: 'user', content: prompt }],
       stream: true
@@ -73,11 +73,11 @@ async function streamOpenAICompatible(prompt, model, apiKey, url, onChunk, provi
 
 async function streamGemini(prompt, model, apiKey, onChunk) {
   const m = model || 'gemini-2.5-flash';
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${m}:streamGenerateContent?alt=sse&key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${m}:streamGenerateContent?alt=sse`;
   
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
     body: JSON.stringify({
       contents: [{ role: 'user', parts: [{ text: prompt }] }]
     })

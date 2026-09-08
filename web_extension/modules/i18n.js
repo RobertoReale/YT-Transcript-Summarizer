@@ -8,7 +8,7 @@ export function applyI18n() {
       } 
       // Some elements might have a title instead of text content, but usually we use a specific dataset for that.
       else {
-        el.innerHTML = msg;
+        el.textContent = msg;
       }
     }
   });

@@ -1,11 +1,45 @@
 // ── LLM API Calls ─────────────────────────────────────────────────────────────
 import { CONFIG } from './config.js';
-const chunkNotes = (lang) => ({
-  part: 'Part',
-  instruction: () => '',
-  mergeChat: () => '',
-  mergeApi: () => ''
-});
+const CHUNK_NOTES = {
+  en: {
+    part: 'Part',
+    instruction: (i, n) => `This is part ${i} of ${n} of the transcript. Summarize this part only. Do not repeat context from earlier parts.`,
+    mergeChat: (n) => `You have just summarized ${n} parts of a video transcript. Now write a single, cohesive, final summary that combines all ${n} partial summaries above. Do not simply concatenate them — synthesize the key points into a unified document.`,
+    mergeApi: (n) => `The following are ${n} partial summaries of consecutive parts of a video transcript. Write a single, cohesive, final summary that combines all of them. Do not simply concatenate — synthesize the key points into a unified document.`
+  },
+  it: {
+    part: 'Parte',
+    instruction: (i, n) => `Questa è la parte ${i} di ${n} della trascrizione. Riassumi solo questa parte. Non ripetere il contesto delle parti precedenti.`,
+    mergeChat: (n) => `Hai appena riassunto ${n} parti della trascrizione di un video. Ora scrivi un unico riassunto finale e coeso che combini tutti i ${n} riassunti parziali sopra. Non limitarti a concatenarli — sintetizza i punti chiave in un documento unificato.`,
+    mergeApi: (n) => `I seguenti sono ${n} riassunti parziali di parti consecutive della trascrizione di un video. Scrivi un unico riassunto finale e coeso che li combini tutti. Non limitarti a concatenarli — sintetizza i punti chiave in un documento unificato.`
+  },
+  es: {
+    part: 'Parte',
+    instruction: (i, n) => `Esta es la parte ${i} de ${n} de la transcripción. Resume solo esta parte. No repitas el contexto de partes anteriores.`,
+    mergeChat: (n) => `Acabas de resumir ${n} partes de la transcripción de un video. Ahora escribe un único resumen final y cohesivo que combine todos los ${n} resúmenes parciales anteriores. No los concatenes simplemente — sintetiza los puntos clave en un documento unificado.`,
+    mergeApi: (n) => `Los siguientes son ${n} resúmenes parciales de partes consecutivas de la transcripción de un video. Escribe un único resumen final y cohesivo que los combine todos. No los concatenes simplemente — sintetiza los puntos clave en un documento unificado.`
+  },
+  fr: {
+    part: 'Partie',
+    instruction: (i, n) => `Ceci est la partie ${i} sur ${n} de la transcription. Résume uniquement cette partie. Ne répète pas le contexte des parties précédentes.`,
+    mergeChat: (n) => `Tu viens de résumer ${n} parties de la transcription d'une vidéo. Écris maintenant un résumé final unique et cohérent qui combine les ${n} résumés partiels ci-dessus. Ne les concatène pas simplement — synthétise les points clés en un document unifié.`,
+    mergeApi: (n) => `Ce qui suit sont ${n} résumés partiels de parties consécutives de la transcription d'une vidéo. Écris un résumé final unique et cohérent qui les combine tous. Ne les concatène pas simplement — synthétise les points clés en un document unifié.`
+  },
+  de: {
+    part: 'Teil',
+    instruction: (i, n) => `Dies ist Teil ${i} von ${n} des Transkripts. Fasse nur diesen Teil zusammen. Wiederhole keinen Kontext aus früheren Teilen.`,
+    mergeChat: (n) => `Du hast gerade ${n} Teile eines Videotranskripts zusammengefasst. Schreibe nun eine einzige, zusammenhängende Endzusammenfassung, die alle ${n} Teilzusammenfassungen oben vereint. Verkette sie nicht einfach — fasse die Kernpunkte in einem einheitlichen Dokument zusammen.`,
+    mergeApi: (n) => `Das Folgende sind ${n} Teilzusammenfassungen aufeinanderfolgender Abschnitte eines Videotranskripts. Schreibe eine einzige, zusammenhängende Endzusammenfassung, die alle vereint. Verkette sie nicht einfach — fasse die Kernpunkte in einem einheitlichen Dokument zusammen.`
+  },
+  pt: {
+    part: 'Parte',
+    instruction: (i, n) => `Esta é a parte ${i} de ${n} da transcrição. Resume apenas esta parte. Não repitas o contexto de partes anteriores.`,
+    mergeChat: (n) => `Acabaste de resumir ${n} partes da transcrição de um vídeo. Agora escreve um único resumo final e coeso que combine todos os ${n} resumos parciais acima. Não os concatenes simplesmente — sintetiza os pontos-chave num documento unificado.`,
+    mergeApi: (n) => `Os seguintes são ${n} resumos parciais de partes consecutivas da transcrição de um vídeo. Escreve um único resumo final e coeso que os combine todos. Não os concatenes simplesmente — sintetiza os pontos-chave num documento unificado.`
+  }
+};
+
+const chunkNotes = (lang) => CHUNK_NOTES[lang] || CHUNK_NOTES.en;
 async function fetchLLM(url, headers, bodyObj, providerName) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 180000); // 3 min timeout
@@ -61,7 +95,31 @@ function trimTranscript(transcript, provider) {
  * mid-word. Returns a single-element array when splitting is not requested.
  */
 export function splitTranscript(text, parts) {
-  return [String(text || '')];
+  const content = String(text || '');
+  if (parts <= 1 || !content) return [content];
+
+  const size = Math.ceil(content.length / parts);
+  const slices = [];
+  let pos = 0;
+
+  while (pos < content.length) {
+    let next = pos + size;
+    if (next < content.length) {
+      let n = Math.max(content.lastIndexOf('\n', next), content.lastIndexOf('. ', next));
+      if (n > pos + size * 0.7) {
+        next = n + 1;
+      } else {
+        // Fallback: look forward if no good cut point was found backward
+        n = Math.max(content.indexOf('\n', next), content.indexOf('. ', next));
+        if (n !== -1 && n < pos + size * 1.3) next = n + 1;
+      }
+    } else {
+      next = content.length;
+    }
+    slices.push(content.slice(pos, next).trim());
+    pos = next;
+  }
+  return slices;
 }
 
 /**
@@ -85,7 +143,13 @@ export function requestedChunkCount(settings) {
 }
 
 export function plannedChunkCount(transcript, settings) {
-  return 1;
+  const asked = requestedChunkCount(settings);
+  if ((settings.mode || 'web') !== 'web') return asked;
+
+  const cap = settings.maxMessageChars || 0;
+  if (!cap || transcript.length <= cap) return asked;
+
+  return Math.max(asked, Math.ceil(transcript.length / cap));
 }
 
 // Worst-case length of the chunk instruction glued to each part, plus the two
@@ -199,6 +263,9 @@ export async function callLLM(transcript, settings) {
       break;
     case 'gemini':
       summary = await callGemini(trimmed.text, s);
+      break;
+    case 'groq':
+      summary = await callOpenAICompat(trimmed.text, s, 'https://api.groq.com/openai/v1/chat/completions', 'Groq');
       break;
     case 'openrouter':
       summary = await callOpenAICompat(trimmed.text, s, 'https://openrouter.ai/api/v1/chat/completions', 'OpenRouter');

@@ -95,7 +95,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       try {
         const { settings = {} } = await chrome.storage.local.get('settings');
         const transcriptLang = settings.transcriptLang || 'en';
-        const result = await acquireTranscript(msg.videoId, transcriptLang, (logMsg) => console.log(logMsg));
+        const options = { timeStart: settings.timeStart, timeEnd: settings.timeEnd };
+        const result = await acquireTranscript(msg.videoId, transcriptLang, (logMsg) => console.log(logMsg), options);
         if (result && result.transcript) {
           sendResponse({ transcript: result.transcript });
         } else {
@@ -283,7 +284,7 @@ function videoIdOf(url) {
 
 // A partial transcript is worse than a late one: keep looking, and only fall
 // back to the best partial result once every strategy has been tried.
-async function acquireTranscript(videoId, transcriptLang, log) {
+async function acquireTranscript(videoId, transcriptLang, log, options = {}) {
   const strategies = [
     ['S1-PageScrape', fetchViaGetTranscript],
     ['S2-Android', fetchViaAndroidPlayer],
@@ -293,7 +294,7 @@ async function acquireTranscript(videoId, transcriptLang, log) {
   let best = null;
   for (const [tag, fn] of strategies) {
     try {
-      const r = await fn(videoId, (msg) => log(`[${tag}] ${msg}`), transcriptLang);
+      const r = await fn(videoId, (msg) => log(`[${tag}] ${msg}`), transcriptLang, options);
       if (r?.transcript) {
         if (r.complete !== false) { log(`[${tag}] ✅ Success (coverage ${r.coverage ?? 'unknown'})`); return r; }
         log(`[${tag}] ⚠️ Partial transcript (coverage ${r.coverage}) — trying the next strategy`);
@@ -322,11 +323,14 @@ async function processJob(job, settings) {
     const jobSettings = {
       ...settings,
       prompt: effectivePrompt,
-      transcriptLang
+      transcriptLang,
+      timeStart: (job.timeStart !== undefined && job.timeStart !== null) ? job.timeStart : settings.timeStart,
+      timeEnd: (job.timeEnd !== undefined && job.timeEnd !== null) ? job.timeEnd : settings.timeEnd
     };
 
     await updateJobStatus(job.id, 'active', '📋 Fetching transcript...');
-    const result = await acquireTranscript(videoId, transcriptLang, (m) => { debugLog += `${m}\n`; });
+    const options = { timeStart: jobSettings.timeStart, timeEnd: jobSettings.timeEnd };
+    const result = await acquireTranscript(videoId, transcriptLang, (m) => { debugLog += `${m}\n`; }, options);
 
     if (!result?.transcript) {
       // Expected outcome for captionless / region- or age-restricted videos —
@@ -729,9 +733,10 @@ function webOverflowNote(web, providerLabel) {
 // The per-provider composer cap, applied only in web mode and only when we are
 // actually allowed to press Send (see plannedChunkCount / the splitToFit gate).
 function webChunkSettings(base, provider, autoSubmit) {
+  const cap = CONFIG.maxWebMessageChars[provider] ?? CONFIG.maxWebMessageChars.default ?? 0;
   return {
     ...base,
-    maxMessageChars: 0,
+    maxMessageChars: cap,
     splitToFit: !!autoSubmit
   };
 }
@@ -776,7 +781,6 @@ async function summarizeTranscript(transcript, settings, jobId, appendLog, label
   }
 
   const joined = pieces.join('\n\n');
-  return { summary: joined, truncated, kept, total, chunks: n, merged: false };
 
   // Optional extra call: fuse the partials into one summary. If it fails there
   // is no reason to throw away N successful calls — keep the joined parts.

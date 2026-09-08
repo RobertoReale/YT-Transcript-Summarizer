@@ -1,6 +1,6 @@
 import { CONFIG } from './config.js';
 import { fetchWithTimeout, findInObject, sleep } from './utils.js';
-import { parseTranscript, isComplete, coverageLabel, looksTruncated } from './transcript-parse.js';
+import { parseTranscript, isComplete, coverageLabel, looksTruncated, parseTimeStr } from './transcript-parse.js';
 
 // Formats are tried in this order; the first one that parses AND covers the
 // whole video wins. If none is complete we keep the longest partial result
@@ -33,7 +33,7 @@ export function pickTrack(tracks, lang) {
  * Download one caption track, trying each format, and validate that the cues
  * span the whole video. Returns { text, coverage, complete, format } or null.
  */
-export async function fetchCaptionTrack(track, lengthSeconds, doFetch, log = () => {}) {
+export async function fetchCaptionTrack(track, lengthSeconds, doFetch, log = () => {}, options = {}) {
   const base = String(track.baseUrl)
     .replace(/([&?])fmt=[^&]*/g, '$1')
     .replace(/\?&/, '?')
@@ -52,7 +52,7 @@ export async function fetchCaptionTrack(track, lengthSeconds, doFetch, log = () 
       log(`fmt "${suffix || 'default'}": empty body — expired URL or PO-token enforcement`);
       continue;
     }
-    const parsed = parseTranscript(body);
+    const parsed = parseTranscript(body, options);
     if (!parsed) { log(`fmt "${suffix || 'default'}": unparseable (${body.length} bytes)`); continue; }
 
     const complete = isComplete(parsed, lengthSeconds);
@@ -76,7 +76,7 @@ export async function fetchCaptionTrack(track, lengthSeconds, doFetch, log = () 
 // They also deliberately send no cookies: with real session cookies attached,
 // YouTube returns fewer (or zero) caption tracks for the ANDROID client than
 // it does for a cookie-less request — verified by testing both side by side.
-export async function fetchViaAndroidPlayer(videoId, log, transcriptLang = 'en') {
+export async function fetchViaAndroidPlayer(videoId, log, transcriptLang = 'en', options = {}) {
   const clients = [
     { clientName: 'ANDROID', clientVersion: CONFIG.youtube.androidClientVersion, androidSdkVersion: CONFIG.youtube.androidSdkVersion, hl: 'en', gl: 'US', utcOffsetMinutes: 0 },
     { clientName: 'IOS', clientVersion: CONFIG.youtube.iosClientVersion, deviceMake: 'Apple', deviceModel: CONFIG.youtube.iosDeviceModel, hl: 'en', gl: 'US', utcOffsetMinutes: 0 }
@@ -117,7 +117,7 @@ export async function fetchViaAndroidPlayer(videoId, log, transcriptLang = 'en')
       const got = await fetchCaptionTrack(track, lengthSeconds, async (url) => {
         const tResp = await fetchWithTimeout(url, {}, 12000);
         return tResp.ok ? await tResp.text() : null;
-      }, (m) => log(`${clientInfo.clientName}: ${m}`));
+      }, (m) => log(`${clientInfo.clientName}: ${m}`), options);
 
       if (got) {
         log(`${clientInfo.clientName}: ✅ Parsed (${got.text.length} chars, coverage ${got.coverage})`);
@@ -134,7 +134,7 @@ export async function fetchViaAndroidPlayer(videoId, log, transcriptLang = 'en')
   return null;
 }
 
-export async function fetchViaGetTranscript(videoId, log, transcriptLang = 'en') {
+export async function fetchViaGetTranscript(videoId, log, transcriptLang = 'en', options = {}) {
   log(`Fetching YouTube watch page...`);
 
   let title = videoId;
@@ -179,7 +179,7 @@ export async function fetchViaGetTranscript(videoId, log, transcriptLang = 'en')
         const got = await fetchCaptionTrack(track, lengthSeconds, async (url) => {
           const tResp = await fetchWithTimeout(url, { credentials: 'include' }, 12000);
           return tResp.ok ? await tResp.text() : null;
-        }, (m) => log(`Page extraction: ${m}`));
+        }, (m) => log(`Page extraction: ${m}`), options);
 
         if (got) {
           log(`Page extraction: ✅ Parsed (${got.text.length} chars, coverage ${got.coverage})`);
@@ -221,7 +221,7 @@ export async function fetchViaGetTranscript(videoId, log, transcriptLang = 'en')
     if (!resp.ok) { log(`HTTP error`); return null; }
 
     const data = await resp.json();
-    const transcript = parseGetTranscriptResponse(data, log);
+    const transcript = parseGetTranscriptResponse(data, log, options);
     if (transcript) {
       log(`Transcript extracted (${transcript.length} chars)`);
       // get_transcript carries no timings, so coverage cannot be measured — but a
@@ -242,7 +242,7 @@ export async function fetchViaGetTranscript(videoId, log, transcriptLang = 'en')
   }
 }
 
-export async function tabFetchTranscript(videoId, log, transcriptLang = 'en') {
+export async function tabFetchTranscript(videoId, log, transcriptLang = 'en', options = {}) {
   log(`Tab strategy for ${videoId}, lang="${transcriptLang}"`);
 
   const existingTabs = await chrome.tabs.query({ url: ['*://www.youtube.com/watch*', '*://youtu.be/*'] });
@@ -254,7 +254,7 @@ export async function tabFetchTranscript(videoId, log, transcriptLang = 'en') {
     // Only then do we fall through and open a dedicated tab; any other failure
     // (no captions, script error) is a genuine result, not reused-tab flakiness.
     log(`Reusing existing tab id=${existingTab.id}`);
-    const reusedResult = await runTabScript(existingTab.id, videoId, transcriptLang, log);
+    const reusedResult = await runTabScript(existingTab.id, videoId, transcriptLang, log, options);
     if (reusedResult?.transcript) return reusedResult;
     if (!reusedResult?.mismatch) return reusedResult;
     log('Reused tab was showing a different video — opening a fresh tab instead');
@@ -292,7 +292,7 @@ export async function tabFetchTranscript(videoId, log, transcriptLang = 'en') {
       let extraction = null;
       try {
         extraction = await Promise.race([
-          runTabScript(tabId, videoId, transcriptLang, log),
+          runTabScript(tabId, videoId, transcriptLang, log, options),
           sleep(90000).then(() => { log('Extraction timed out after 90s'); return null; })
         ]);
       } catch (e) {
@@ -341,7 +341,7 @@ export async function tabFetchTranscript(videoId, log, transcriptLang = 'en') {
 // Resolve the caption track from inside the page, then pull each format through
 // the page's own fetch(). The body is parsed by the extension (single parser in
 // transcript-parse.js) instead of a copy inlined in the injected script.
-async function runTabScript(tabId, videoId, transcriptLang, log) {
+async function runTabScript(tabId, videoId, transcriptLang, log, options = {}) {
   const resolveInPage = async (vid, tLang, config) => {
     const log = [];
     const L = (m) => log.push(m);
@@ -485,7 +485,7 @@ async function runTabScript(tabId, videoId, transcriptLang, log) {
       const r = out?.[0]?.result;
       if (r?.error) throw new Error(r.error);
       return r?.text ?? null;
-    }, (m) => log(`  ${m}`));
+    }, (m) => log(`  ${m}`), options);
 
     if (!got) { log('No transcript from tab'); return null; }
     log(`Transcript found (${got.text.length} chars, coverage ${got.coverage})`);
@@ -536,7 +536,8 @@ function encodeTranscriptParams(videoId) {
   return btoa(String.fromCharCode(...outer));
 }
 
-function parseGetTranscriptResponse(data, log) {
+
+function parseGetTranscriptResponse(data, log, options = {}) {
   const segments = findInObject(data, 'initialSegments');
   if (!segments?.length) {
     log('initialSegments not found in response');
@@ -545,8 +546,16 @@ function parseGetTranscriptResponse(data, log) {
     return null;
   }
 
+  const startMs = parseTimeStr(options.timeStart);
+  const endMs = parseTimeStr(options.timeEnd);
+
   const lines = segments
     .map(s => {
+      const startTimer = parseInt(s?.startTimeMs || '0', 10);
+      const endTimer = parseInt(s?.endTimeMs || '0', 10);
+      if (startMs !== null && endTimer < startMs) return '';
+      if (endMs !== null && startTimer > endMs) return '';
+
       const runs = s?.transcriptSegmentRenderer?.snippet?.runs || [];
       return runs.map(r => r.text || '').join('').replace(/\n/g, ' ').trim();
     })

@@ -1,19 +1,22 @@
 export function parseMarkdown(text) {
   if (!text) return '';
 
-  let html = text
+  // Process blockquotes BEFORE HTML escaping (they need raw `>`)
+  let html = text.replace(/^> (.*$)/gim, '<<<BLOCKQUOTE>>>$1<<<\/BLOCKQUOTE>>>');
+
+  html = html
     // Escape HTML entities to prevent XSS (basic)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
 
+    // Restore blockquotes
+    .replace(/<<<BLOCKQUOTE>>>(.*?)<<<\/BLOCKQUOTE>>>/gim, '<blockquote>$1</blockquote>')
+
     // Headers
     .replace(/^### (.*$)/gim, '<h3>$1</h3>')
     .replace(/^## (.*$)/gim, '<h2>$1</h2>')
     .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-
-    // Blockquotes
-    .replace(/^\> (.*$)/gim, '<blockquote>$1</blockquote>')
 
     // Bold
     .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')

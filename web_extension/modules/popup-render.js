@@ -85,7 +85,7 @@ export function toggleJobSettings(id) {
 }
 
 function jobHasCustom(job) {
-  return !!job.prompt || (job.format != null) || (job.length != null) || (job.lang != null);
+  return !!job.prompt || (job.format != null) || (job.length != null) || (job.lang != null) || !!job.timeStart || !!job.timeEnd;
 }
 
 export function updateJobEditBtn(id, job) {
@@ -145,6 +145,22 @@ export async function setJobSplit(id, parts) {
   await chrome.storage.local.set({ jobs: state.jobs });
 }
 
+export async function setJobTimeStart(id, val) {
+  const job = state.jobs.find(j => j.id === id);
+  if (!job) return;
+  job.timeStart = val || null;
+  updateJobEditBtn(id, job);
+  await chrome.storage.local.set({ jobs: state.jobs });
+}
+
+export async function setJobTimeEnd(id, val) {
+  const job = state.jobs.find(j => j.id === id);
+  if (!job) return;
+  job.timeEnd = val || null;
+  updateJobEditBtn(id, job);
+  await chrome.storage.local.set({ jobs: state.jobs });
+}
+
 export async function resetJobSettings(id) {
   const job = state.jobs.find(j => j.id === id);
   if (!job) return;
@@ -153,6 +169,8 @@ export async function resetJobSettings(id) {
   job.lang = null;
   job.prompt = null;
   job.split = null;
+  job.timeStart = null;
+  job.timeEnd = null;
   await chrome.storage.local.set({ jobs: state.jobs });
   renderJobs();
   const el = document.getElementById(`job-settings-${id}`);
@@ -234,6 +252,12 @@ export function renderJobs() {
           <option value="hi" ${j.lang === 'hi' ? 'selected' : ''}>🇮🇳 HI</option>
           <option value="auto" ${j.lang === 'auto' ? 'selected' : ''}>🌐 Auto</option>
         </select>
+      </div>
+      <div class="job-time-row" style="margin-top: 8px;">
+        <div class="row-input">
+          <input type="text" class="job-time-input" data-job-id="${j.id}" data-time-type="start" placeholder="Start time (e.g. 05:00)" value="${escHtml(j.timeStart || '')}" autocomplete="off" ${dis}>
+          <input type="text" class="job-time-input" data-job-id="${j.id}" data-time-type="end" placeholder="End time (e.g. 10:00)" value="${escHtml(j.timeEnd || '')}" autocomplete="off" ${dis}>
+        </div>
       </div>`;
 
     return `

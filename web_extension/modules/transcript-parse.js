@@ -93,33 +93,57 @@ export function hasTimestamps(text) {
   return /^\[\d{1,2}:\d{2}(?::\d{2})?\] /m.test(String(text || ''));
 }
 
-function parseJson3(text) {
+export function parseTimeStr(timeStr) {
+  if (!timeStr) return null;
+  const parts = timeStr.trim().split(':').reverse();
+  if (parts.length === 0) return null;
+  let seconds = 0;
+  for (let i = 0; i < parts.length; i++) {
+    const v = parseFloat(parts[i]);
+    if (!isNaN(v)) seconds += v * Math.pow(60, i);
+  }
+  return seconds * 1000;
+}
+
+function parseJson3(text, options = {}) {
   const json = JSON.parse(text); // caller catches
   const events = Array.isArray(json?.events) ? json.events : [];
   if (!events.length) return null;
   const cues = [];
   let endMs = 0;
+  const startMsLimit = parseTimeStr(options.timeStart);
+  const endMsLimit = parseTimeStr(options.timeEnd);
+
   for (const e of events) {
     if (!Array.isArray(e.segs)) continue;
     const start = Number(e.tStartMs) || 0;
     const dur = Number(e.dDurationMs) || 0;
     endMs = Math.max(endMs, start + dur);
+    if (startMsLimit !== null && (start + dur) < startMsLimit) continue;
+    if (endMsLimit !== null && start > endMsLimit) continue;
     pushCue(cues, e.segs.map(s => s.utf8 || '').join(''), start);
   }
   return cues.length ? { text: render(cues), endMs, cues: cues.length } : null;
 }
 
 // Legacy `?lang=xx` (no fmt) format: <text start="12.3" dur="4.5">…</text>
-function parseLegacyXml(text) {
+function parseLegacyXml(text, options = {}) {
   const matches = [...text.matchAll(/<text([^>]*)>([\s\S]*?)<\/text>/g)];
   if (!matches.length) return null;
   const cues = [];
   let endMs = 0;
+  const startMsLimit = parseTimeStr(options.timeStart);
+  const endMsLimit = parseTimeStr(options.timeEnd);
+
   for (const m of matches) {
     const start = parseFloat(/\bstart="([\d.]+)"/.exec(m[1])?.[1] ?? '0') || 0;
     const dur = parseFloat(/\bdur="([\d.]+)"/.exec(m[1])?.[1] ?? '0') || 0;
-    endMs = Math.max(endMs, (start + dur) * 1000);
-    pushCue(cues, decodeEntities(m[2].replace(/<[^>]+>/g, '')), start * 1000);
+    const endT = (start + dur) * 1000;
+    const startT = start * 1000;
+    endMs = Math.max(endMs, endT);
+    if (startMsLimit !== null && endT < startMsLimit) continue;
+    if (endMsLimit !== null && startT > endMsLimit) continue;
+    pushCue(cues, decodeEntities(m[2].replace(/<[^>]+>/g, '')), startT);
   }
   return cues.length ? { text: render(cues), endMs, cues: cues.length } : null;
 }
@@ -127,15 +151,21 @@ function parseLegacyXml(text) {
 // srv3: <p t="12300" d="4500"><s>word</s><s> more</s></p>. The old code looked
 // for <text> tags here too, so the srv3 fallback could never match anything and
 // was effectively dead — the strategy silently had two attempts, not three.
-function parseSrv3(text) {
+function parseSrv3(text, options = {}) {
   const paragraphs = [...text.matchAll(/<p([^>]*)>([\s\S]*?)<\/p>/g)];
   if (!paragraphs.length) return null;
   const cues = [];
   let endMs = 0;
+  const startMsLimit = parseTimeStr(options.timeStart);
+  const endMsLimit = parseTimeStr(options.timeEnd);
+
   for (const p of paragraphs) {
     const t = parseInt(/\bt="(\d+)"/.exec(p[1])?.[1] ?? '0', 10) || 0;
     const d = parseInt(/\bd="(\d+)"/.exec(p[1])?.[1] ?? '0', 10) || 0;
     endMs = Math.max(endMs, t + d);
+    if (startMsLimit !== null && (t + d) < startMsLimit) continue;
+    if (endMsLimit !== null && t > endMsLimit) continue;
+
     const inner = p[2];
     const segs = [...inner.matchAll(/<s[^>]*>([\s\S]*?)<\/s>/g)];
     const raw = segs.length ? segs.map(s => s[1]).join('') : inner.replace(/<[^>]+>/g, '');
@@ -148,17 +178,17 @@ function parseSrv3(text) {
  * Parse any timedtext payload.
  * @returns {{text: string, endMs: number, cues: number}|null}
  */
-export function parseTranscript(body) {
+export function parseTranscript(body, options = {}) {
   if (typeof body !== 'string' || body.length < 10) return null;
   const trimmed = body.trimStart();
 
   if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
     try {
-      const r = parseJson3(body);
+      const r = parseJson3(body, options);
       if (r) return r;
     } catch (_) { /* not json3 — fall through to the XML parsers */ }
   }
-  return parseSrv3(body) || parseLegacyXml(body);
+  return parseSrv3(body, options) || parseLegacyXml(body, options);
 }
 
 /**

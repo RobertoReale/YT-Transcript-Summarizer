@@ -4,7 +4,7 @@ import { state } from './modules/popup-state.js';
 import { renderHistory, clearHistory } from './modules/popup-history.js';
 import { populateTTSVoices, sendTTS, ttsPlay, ttsPauseResume, ttsStop, updateTTSStatus } from './modules/popup-tts.js';
 import { applyProvider, persistSettings, saveSettings, updatePromptPreview, togglePromptEditor } from './modules/popup-settings.js';
-import { renderJobs, updateJob, setUIAsRunning, setUIAsStopped, setMode, setChip, setOutputFormat, setSummaryLength, toggleJobSettings, updateJobEditBtn, setJobFormat, setJobLength, resetJobSettings, setJobLang } from './modules/popup-render.js';
+import { renderJobs, updateJob, setUIAsRunning, setUIAsStopped, setMode, setChip, setOutputFormat, setSummaryLength, toggleJobSettings, updateJobEditBtn, setJobFormat, setJobLength, resetJobSettings, setJobLang, setJobTimeStart, setJobTimeEnd } from './modules/popup-render.js';
 
 const PANELS = ['panel-settings', 'panel-history', 'panel-tts'];
 
@@ -87,7 +87,7 @@ async function init() {
     'useThinking', 'autoPaste', 'autoSubmit', 'combinedPrompt', 'saveTranscriptFile',
     'outputFormat', 'summaryLength', 'jobs', 'running', 'theme',
     'ttsState', 'ttsRate', 'ttsVoice', 'ttsText', 'webDelay', 'ttsLocalUrl',
-    'includeTimestamps', 'chunkMode', 'chunkMerge'
+    'includeTimestamps', 'chunkMode', 'chunkMerge', 'timeStart', 'timeEnd'
   ]);
 
   const {
@@ -95,7 +95,7 @@ async function init() {
     useThinking, autoPaste, autoSubmit, combinedPrompt, saveTranscriptFile,
     outputFormat, summaryLength, jobs: savedJobs, running: savedRunning, theme,
     ttsState, ttsRate, ttsVoice, ttsText, webDelay, ttsLocalUrl,
-    includeTimestamps, chunkMode, chunkMerge
+    includeTimestamps, chunkMode, chunkMerge, timeStart, timeEnd
   } = stored;
 
   // Migrate legacy apiKey → apiKeys.anthropic
@@ -133,6 +133,9 @@ async function init() {
   if (ttsState) updateTTSStatus(ttsState);
   if (ttsLocalUrl) document.getElementById('tts-local-url').value = ttsLocalUrl;
   document.getElementById('web-delay').value = webDelay ?? 30;
+
+  if (timeStart) document.getElementById('time-start').value = timeStart;
+  if (timeEnd) document.getElementById('time-end').value = timeEnd;
 
   const modeSel = document.getElementById('chunk-mode-select');
   const mergeCb = document.getElementById('chunk-merge-cb');
@@ -424,6 +427,15 @@ async function init() {
 
   let jobPromptTimer = null;
   document.getElementById('job-list').addEventListener('input', e => {
+    const timeInput = e.target.closest('.job-time-input');
+    if (timeInput) {
+      const id = Number(timeInput.dataset.jobId);
+      const type = timeInput.dataset.timeType; // 'start' or 'end'
+      if (type === 'start') setJobTimeStart(id, timeInput.value.trim());
+      else if (type === 'end') setJobTimeEnd(id, timeInput.value.trim());
+      return;
+    }
+
     const ta = e.target.closest('.job-prompt-input');
     if (!ta) return;
     const id = Number(ta.dataset.jobId);
@@ -777,11 +789,11 @@ async function startBatch() {
   const {
     models = {}, customEndpointUrl, transcriptLang, customPrompt, mode,
     useThinking, autoPaste, autoSubmit, combinedPrompt, saveTranscriptFile, webDelay: storedDelay,
-    includeTimestamps
+    includeTimestamps, timeStart, timeEnd
   } = await chrome.storage.local.get([
     'models', 'customEndpointUrl', 'transcriptLang', 'customPrompt', 'mode',
     'useThinking', 'autoPaste', 'autoSubmit', 'combinedPrompt', 'saveTranscriptFile', 'webDelay',
-    'includeTimestamps'
+    'includeTimestamps', 'timeStart', 'timeEnd'
   ]);
 
   const globalFmt = [...document.querySelectorAll('.chip-fmt')].find(c => c.classList.contains('on'))?.dataset.fmt || 'chat';
@@ -852,7 +864,9 @@ async function startBatch() {
       combinedPrompt: !!combinedPrompt,
       saveTranscriptFile: !!saveTranscriptFile,
       webDelay: storedDelay ?? 30,
-      includeTimestamps: includeTimestamps !== false
+      includeTimestamps: includeTimestamps !== false,
+      timeStart: timeStart || '',
+      timeEnd: timeEnd || ''
     }
   });
 }
