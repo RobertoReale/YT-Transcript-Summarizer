@@ -45,9 +45,7 @@ export function updateChipsForMode(mode) {
   document.getElementById('chip-timestamps').classList.toggle('hidden', isTranscript);
   document.getElementById('chip-thinking').classList.toggle('hidden',
     mode !== 'api' || !info.supportsThinking);
-  document.getElementById('split-select-inline').classList.toggle('hidden', isTranscript);
-  refreshMergeChip();
-  refreshSplitCapNote();
+
   document.getElementById('chip-fmt-chat').classList.toggle('hidden', isTranscript);
   document.getElementById('chip-fmt-md').classList.toggle('hidden', isTranscript);
   document.getElementById('chip-len-short').classList.toggle('hidden', isTranscript);
@@ -75,59 +73,10 @@ export function setSummaryLength(len) {
   document.getElementById('chip-len-long').classList.toggle('on', len === 'long');
 }
 
-// ── Transcript splitting ──────────────────────────────────────────────────────
-// Kept in sync with the <option>s of #split-select-inline.
-export const SPLIT_CHOICES = [1, 2, 3, 4, 5, 6, 8, 10];
+// ── Transcript splitting (Feature stubbed out in backend) ─────────────────
+// Split logic removed.
 
-/** Parts selected for the whole run (1 = send the transcript in one go). */
-export function currentSplit() {
-  return parseInt(document.getElementById('split-select-inline').value, 10) || 1;
-}
 
-export function setSplit(parts) {
-  const n = SPLIT_CHOICES.includes(parts) ? parts : 1;
-  document.getElementById('split-select-inline').value = String(n);
-  refreshMergeChip();
-  refreshSplitCapNote();
-}
-
-// "Merge parts" only means something once there is more than one part, and
-// Transcript mode never talks to a model at all.
-function refreshMergeChip() {
-  const isTranscript = document.getElementById('mode-select').value === 'transcript';
-  document.getElementById('chip-merge').classList.toggle('hidden', isTranscript || currentSplit() === 1);
-}
-
-/**
- * The number of parts is not always the user's to decide: the provider's own
- * composer has a hard character limit (Gemini truncates at exactly 32 000, in
- * silence), so a long transcript is split whatever the selector says — and the
- * merge that follows is not optional either, because "1 part" means "one
- * summary". That used to surface only in the status line, after the chat tab was
- * already open, which made a correct rescue look like a broken promise.
- *
- * Only shown when it can actually happen: web mode, auto-submit on (without it
- * the extension may not send the follow-up parts and never splits), and a
- * provider with a measured cap.
- */
-export function refreshSplitCapNote() {
-  const el = document.getElementById('split-cap-note');
-  if (!el) return;
-  const mode = document.getElementById('mode-select').value;
-  const autoSubmit = document.getElementById('autosubmit-cb')?.checked;
-  const caps = CONFIG.maxWebMessageChars;
-  const cap = caps[state.currentProvider] ?? caps.default;
-
-  const applies = mode === 'web' && autoSubmit && !!cap;
-  el.classList.toggle('hidden', !applies);
-  if (!applies) { el.textContent = ''; return; }
-
-  const label = (PROVIDERS[state.currentProvider] || {}).name || state.currentProvider;
-  el.textContent = currentSplit() === 1
-    ? `⚠️ ${label} caps a message at ${Math.round(cap / 1000)}k chars: a longer transcript is split automatically, then merged.`
-    : `⚠️ ${label} caps a message at ${Math.round(cap / 1000)}k chars: more parts may be added if needed.`;
-  el.title = el.textContent;
-}
 
 // ── Per-job settings ──────────────────────────────────────────────────────────
 export function toggleJobSettings(id) {
@@ -136,7 +85,7 @@ export function toggleJobSettings(id) {
 }
 
 function jobHasCustom(job) {
-  return !!job.prompt || (job.format != null) || (job.length != null) || (job.lang != null) || (job.split != null);
+  return !!job.prompt || (job.format != null) || (job.length != null) || (job.lang != null);
 }
 
 export function updateJobEditBtn(id, job) {
@@ -246,8 +195,7 @@ export function renderJobs() {
   const mode = document.getElementById('mode-select').value;
   const isTranscript = mode === 'transcript';
   const globalFmt = [...document.querySelectorAll('.chip-fmt')].find(c => c.classList.contains('on'))?.dataset.fmt || 'chat';
-  const globalLen = [...document.querySelectorAll('.chip-len')].find(c => c.classList.contains('on'))?.dataset.len || 'normal';
-  const globalSplit = currentSplit();
+  const globalLen = document.querySelector('.chip-len.on')?.dataset.len || 'normal';
   const dis = state.running ? 'disabled' : '';
 
   list.innerHTML = visibleJobs.map(j => {
@@ -285,13 +233,6 @@ export function renderJobs() {
           <option value="tr" ${j.lang === 'tr' ? 'selected' : ''}>🇹🇷 TR</option>
           <option value="hi" ${j.lang === 'hi' ? 'selected' : ''}>🇮🇳 HI</option>
           <option value="auto" ${j.lang === 'auto' ? 'selected' : ''}>🌐 Auto</option>
-        </select>
-        <span class="job-lang-label">✂️ Split</span>
-        <select class="job-split-select" data-job-id="${j.id}" ${dis} title="Split this video's transcript into this many parts">
-          <option value="" ${j.split == null ? 'selected' : ''}>🔗 Global (${globalSplit === 1 ? 'off' : globalSplit})</option>
-          ${SPLIT_CHOICES.map(n =>
-            `<option value="${n}" ${j.split === n ? 'selected' : ''}>${n === 1 ? '1 (off)' : n}</option>`
-          ).join('')}
         </select>
       </div>`;
 
