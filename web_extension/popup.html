@@ -204,6 +204,19 @@
       <option value="auto">🌐 Auto</option>
     </select>
     <span class="chips-sep"></span>
+    <select id="split-select-inline" class="split-select-inline" title="Split the transcript into this many parts">
+      <option value="1">1 part</option>
+      <option value="2">2 parts</option>
+      <option value="3">3 parts</option>
+      <option value="4">4 parts</option>
+      <option value="5">5 parts</option>
+      <option value="6">6 parts</option>
+      <option value="8">8 parts</option>
+      <option value="10">10 parts</option>
+    </select>
+    <div id="split-cap-note" class="split-cap-note hidden"></div>
+    <button class="chip chip-merge hidden" id="chip-merge" data-cb="merge-parts-cb" title="Merge split parts into a single summary file">🔗 Merge</button>
+    <span class="chips-sep"></span>
     <button class="chip" id="chip-autopaste" data-cb="autopaste-cb" title="Automatically paste the transcript into the AI chat when the tab opens">📋 Auto-paste</button>
     <button class="chip" id="chip-autosubmit" data-cb="autosubmit-cb" title="Automatically submit the message after pasting (Auto-paste is required and will be enabled)">↵ Auto-submit</button>
     <button class="chip" id="chip-save-file" data-cb="save-file-cb" title="Save the raw transcript as a .txt file in your Downloads folder">💾 Save .txt</button>
@@ -232,6 +245,7 @@
 <input type="checkbox" id="timestamps-cb" checked style="display:none">
 <input type="checkbox" id="combined-prompt-cb" style="display:none">
 <input type="checkbox" id="thinking-cb" style="display:none">
+<input type="checkbox" id="merge-parts-cb" style="display:none">
 
 <div class="prompt-section" id="prompt-section">
   <button class="prompt-header" id="btn-prompt-toggle">

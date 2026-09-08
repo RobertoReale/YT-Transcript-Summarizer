@@ -4,7 +4,7 @@ import { state } from './modules/popup-state.js';
 import { renderHistory, clearHistory } from './modules/popup-history.js';
 import { populateTTSVoices, sendTTS, ttsPlay, ttsPauseResume, ttsStop, updateTTSStatus } from './modules/popup-tts.js';
 import { applyProvider, persistSettings, saveSettings, updatePromptPreview, togglePromptEditor } from './modules/popup-settings.js';
-import { renderJobs, updateJob, setUIAsRunning, setUIAsStopped, setMode, setChip, setOutputFormat, setSummaryLength, toggleJobSettings, updateJobEditBtn, setJobFormat, setJobLength, resetJobSettings, setJobLang } from './modules/popup-render.js';
+import { renderJobs, updateJob, setUIAsRunning, setUIAsStopped, setMode, setChip, setOutputFormat, setSummaryLength, setSplit, refreshSplitCapNote, toggleJobSettings, updateJobEditBtn, setJobFormat, setJobLength, setJobSplit, resetJobSettings, setJobLang } from './modules/popup-render.js';
 
 const PANELS = ['panel-settings', 'panel-history', 'panel-tts'];
 
@@ -264,7 +264,12 @@ async function init() {
     }
   });
 
-
+  // ── Inline split selector ──────────────────────────────────────────────────
+  document.getElementById('split-select-inline').addEventListener('change', (e) => {
+    const parts = parseInt(e.target.value, 10) || 1;
+    setSplit(parts);
+    persistSettings();
+  });
 
   document.getElementById('url-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') addUrl();
@@ -372,6 +377,12 @@ async function init() {
     const langSel = e.target.closest('.job-lang-select');
     if (langSel && !langSel.disabled) {
       setJobLang(Number(langSel.dataset.jobId), langSel.value);
+      return;
+    }
+    const splitSel = e.target.closest('.job-split-select');
+    if (splitSel && !splitSel.disabled) {
+      const val = splitSel.value;
+      setJobSplit(Number(splitSel.dataset.jobId), val === '' ? null : parseInt(val, 10));
       return;
     }
   });

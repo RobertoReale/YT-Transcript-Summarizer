@@ -50,6 +50,24 @@ export const CONFIG = {
     groq:       100000,   // 128k-token context
     custom:     200000,   // typically a small local model
     default:    200000
+  },
+
+  // ── Chunking config ─────────────────────────────────────────────────────────
+  // Controls transcript splitting into multiple parts for long videos.
+  chunking: {
+    defaultParts: 1,      // send the transcript in one go by default
+    maxParts:     10      // ceiling for the split selector
+  },
+
+  // ── Web mode composer character limits ──────────────────────────────────────
+  // Per-provider hard cap on what the chat composer accepts in a single message.
+  // A transcript exceeding this is split automatically (even if the user picked
+  // "1 part") so the tail isn't silently truncated by the composer.
+  maxWebMessageChars: {
+    anthropic:  90000,    // Claude.ai truncates around 95k
+    openai:     60000,    // ChatGPT truncates around 65k
+    gemini:     32000,    // Gemini truncates at exactly 32k
+    default:    0         // 0 = no cap known, don't auto-split
   }
 };
 
