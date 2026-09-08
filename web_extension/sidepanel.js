@@ -7,14 +7,19 @@ let currentVideoId = null;
 let abortController = null;
 
 async function init() {
-  const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (tabs.length > 0 && tabs[0].url && tabs[0].url.includes('youtube.com/watch')) {
-    currentTabId = tabs[0].id;
-    await fetchVideoInfo();
-    document.getElementById('btn-summarize').disabled = false;
-  } else {
-    document.getElementById('video-title').textContent = 'No active YouTube video';
-  }
+  const tabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  handleTab(tabs[0]);
+
+  chrome.tabs.onActivated.addListener(async (activeInfo) => {
+    const tab = await chrome.tabs.get(activeInfo.tabId);
+    handleTab(tab);
+  });
+
+  chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (tab.active && changeInfo.url) {
+      handleTab(tab);
+    }
+  });
 
   document.getElementById('btn-summarize').addEventListener('click', startSummarization);
   document.getElementById('btn-stop').addEventListener('click', stopSummarization);
@@ -42,6 +47,20 @@ async function init() {
       });
     }
   });
+}
+
+async function handleTab(tab) {
+  if (tab && tab.url && tab.url.includes('youtube.com/watch')) {
+    currentTabId = tab.id;
+    await fetchVideoInfo();
+    document.getElementById('btn-summarize').disabled = false;
+  } else {
+    currentTabId = null;
+    currentVideoId = null;
+    document.getElementById('video-title').textContent = 'No active YouTube video';
+    document.getElementById('btn-summarize').disabled = true;
+    document.getElementById('summary-output').innerHTML = '<div class="empty-state">Apri un video YouTube per riassumere</div>';
+  }
 }
 
 async function checkCacheAndResetUI() {
