@@ -1,3 +1,5 @@
+import { PROMPTS, initPrompts } from './modules/config.js';
+
 document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
@@ -12,6 +14,9 @@ async function init() {
 
   document.getElementById('provider-select').addEventListener('change', updateHelpLink);
   document.getElementById('btn-save').addEventListener('click', saveSettings);
+
+  await initPrompts();
+  setupTemplates();
 }
 
 function updateHelpLink() {
@@ -61,4 +66,64 @@ async function saveSettings() {
   setTimeout(() => {
     msg.classList.add('hidden');
   }, 2500);
+}
+
+// --- Prompt Templates Logic ---
+let customTemplatesCache = {};
+
+async function setupTemplates() {
+  const { customTemplates } = await chrome.storage.local.get('customTemplates');
+  customTemplatesCache = customTemplates || {};
+  
+  const langSel = document.getElementById('tpl-lang');
+  const fmtSel = document.getElementById('tpl-fmt');
+  const lenSel = document.getElementById('tpl-len');
+  
+  const updateTextarea = () => {
+    const lang = langSel.value;
+    const fmt = fmtSel.value;
+    const len = lenSel.value;
+    document.getElementById('tpl-textarea').value = PROMPTS[lang]?.[fmt]?.[len] || '';
+  };
+
+  langSel.addEventListener('change', updateTextarea);
+  fmtSel.addEventListener('change', updateTextarea);
+  lenSel.addEventListener('change', updateTextarea);
+  
+  document.getElementById('btn-save-tpl').addEventListener('click', async () => {
+    const lang = langSel.value;
+    const fmt = fmtSel.value;
+    const len = lenSel.value;
+    const val = document.getElementById('tpl-textarea').value.trim();
+    if (!val) return;
+    
+    if (!customTemplatesCache[lang]) customTemplatesCache[lang] = {};
+    if (!customTemplatesCache[lang][fmt]) customTemplatesCache[lang][fmt] = {};
+    customTemplatesCache[lang][fmt][len] = val;
+    
+    await chrome.storage.local.set({ customTemplates: customTemplatesCache });
+    PROMPTS[lang][fmt][len] = val; // update local memory too
+    
+    const msg = document.getElementById('tpl-msg');
+    msg.textContent = 'Saved!';
+    msg.classList.remove('hidden');
+    setTimeout(() => msg.classList.add('hidden'), 2500);
+  });
+
+  document.getElementById('btn-reset-tpl').addEventListener('click', async () => {
+    const lang = langSel.value;
+    const fmt = fmtSel.value;
+    const len = lenSel.value;
+    
+    if (customTemplatesCache[lang]?.[fmt]?.[len]) {
+      delete customTemplatesCache[lang][fmt][len];
+      await chrome.storage.local.set({ customTemplates: customTemplatesCache });
+    }
+    
+    // We need to fetch the original prompt. To do this, we can just remove it from customTemplates and reload the page or fetch from a clean PROMPTS copy.
+    // Instead of doing a full reload, we can just reload the extension page to re-fetch the clean PROMPTS.
+    location.reload();
+  });
+
+  updateTextarea();
 }

@@ -297,3 +297,24 @@ export function isPreset(text) {
   }
   return false;
 }
+
+export async function initPrompts() {
+  try {
+    const { customTemplates } = await chrome.storage.local.get('customTemplates');
+    if (!customTemplates) return;
+    
+    for (const lang of Object.keys(customTemplates)) {
+      if (!PROMPTS[lang]) continue;
+      for (const fmt of Object.keys(customTemplates[lang])) {
+        if (!PROMPTS[lang][fmt]) continue;
+        for (const len of Object.keys(customTemplates[lang][fmt])) {
+          if (PROMPTS[lang][fmt][len] !== undefined) {
+            PROMPTS[lang][fmt][len] = customTemplates[lang][fmt][len];
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("Failed to load custom prompt templates", e);
+  }
+}

@@ -1,4 +1,4 @@
-import { CONFIG, PROVIDERS, getPreset, isPreset } from './modules/config.js';
+import { CONFIG, PROVIDERS, getPreset, isPreset, initPrompts } from './modules/config.js';
 import { showMsg, showBanner } from './modules/ui-utils.js';
 import { state } from './modules/popup-state.js';
 import { renderHistory, clearHistory } from './modules/popup-history.js';
@@ -81,6 +81,7 @@ function togglePanel(panelId, onOpen) {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 async function init() {
+  await initPrompts();
   const stored = await chrome.storage.local.get([
     'provider', 'apiKey', 'apiKeys', 'models', 'customEndpointUrl',
     'transcriptLang', 'customPrompt', 'mode',

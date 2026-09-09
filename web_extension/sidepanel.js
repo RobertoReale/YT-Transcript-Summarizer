@@ -1,5 +1,5 @@
 import { streamLLM } from './modules/llm-stream.js';
-import { CONFIG, getPreset } from './modules/config.js';
+import { CONFIG, getPreset, initPrompts } from './modules/config.js';
 import { parseMarkdown } from './modules/markdown.js';
 
 let currentTabId = null;
@@ -7,6 +7,7 @@ let currentVideoId = null;
 let abortController = null;
 
 async function init() {
+  await initPrompts();
   const tabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
   handleTab(tabs[0]);
 

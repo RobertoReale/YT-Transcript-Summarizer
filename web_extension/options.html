@@ -56,6 +56,52 @@
         </div>
       </div>
     </main>
+    <main class="content" style="margin-top: 20px;">
+      <div class="card">
+        <h2 class="card-title">Prompt Templates</h2>
+        <p class="card-desc">Override the default prompts used for summarization.</p>
+        
+        <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+          <div class="field" style="flex: 1; margin-bottom: 0;">
+            <label>Language</label>
+            <select id="tpl-lang">
+              <option value="en">English</option>
+              <option value="it">Italian</option>
+              <option value="es">Spanish</option>
+              <option value="fr">French</option>
+              <option value="de">German</option>
+              <option value="pt">Portuguese</option>
+            </select>
+          </div>
+          <div class="field" style="flex: 1; margin-bottom: 0;">
+            <label>Format</label>
+            <select id="tpl-fmt">
+              <option value="md">Markdown</option>
+              <option value="chat">Chat</option>
+            </select>
+          </div>
+          <div class="field" style="flex: 1; margin-bottom: 0;">
+            <label>Length</label>
+            <select id="tpl-len">
+              <option value="short">Short</option>
+              <option value="normal">Normal</option>
+              <option value="long">Long</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Template</label>
+          <textarea id="tpl-textarea" rows="4" style="width: 100%; border: 1px solid var(--border); border-radius: 6px; padding: 10px; background: var(--surface); color: var(--text); font-family: inherit; font-size: 13px; resize: vertical; line-height: 1.4;"></textarea>
+        </div>
+        
+        <div class="actions" style="justify-content: flex-start; gap: 10px;">
+          <button id="btn-save-tpl" class="btn primary">Save Template</button>
+          <button id="btn-reset-tpl" class="btn secondary">Reset to Default</button>
+          <span id="tpl-msg" class="save-msg hidden">Saved!</span>
+        </div>
+      </div>
+    </main>
   </div>
   
   <script type="module" src="modules/i18n.js"></script>
