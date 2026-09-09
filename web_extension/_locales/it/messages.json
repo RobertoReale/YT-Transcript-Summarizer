@@ -1,5 +1,5 @@
 {
-  "extName": { "message": "Riassunti Video YouTube (YT Summarizer)" },
+  "extName": { "message": "YT Summarizer" },
   "extDesc": { "message": "Riassumi video YouTube con Claude, OpenAI, Gemini e altri. Estrazione affidabile dei sottotitoli tramite API InnerTube." },
   
   "optionsTitle": { "message": "Impostazioni" },

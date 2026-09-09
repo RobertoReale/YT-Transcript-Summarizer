@@ -1,4 +1,4 @@
-# YT Transcript Summarizer (Web Extension)
+# YT Summarizer (Web Extension)
 
 A browser extension (Chrome/Firefox) that extracts transcripts from YouTube videos and summarizes them using your AI of choice — Claude, ChatGPT, Gemini, OpenRouter, or any local OpenAI-compatible model.
 

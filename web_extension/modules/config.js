@@ -1,5 +1,5 @@
 // ── Config ─────────────────────────────────────────────────────────────────────
-// Centralized configuration for the YT Transcript Summarizer extension.
+// Centralized configuration for the YT Summarizer extension.
 
 // ── YouTube InnerTube config ───────────────────────────────────────────────────
 // Update these values when YouTube changes its internal API versions.

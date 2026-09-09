@@ -47,7 +47,7 @@ async function streamOpenAICompatible(prompt, model, apiKey, url, onChunk, provi
   if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
   if (provider === 'openrouter') {
     headers['HTTP-Referer'] = 'https://github.com/RobertoReale/YT-Transcript-Summarizer';
-    headers['X-Title'] = 'YT Transcript Summarizer';
+    headers['X-Title'] = 'YT Summarizer';
   }
 
   const res = await fetch(url, {

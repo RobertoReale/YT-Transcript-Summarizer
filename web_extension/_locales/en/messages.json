@@ -1,5 +1,5 @@
 {
-  "extName": { "message": "YT Transcript Summarizer" },
+  "extName": { "message": "YT Summarizer" },
   "extDesc": { "message": "Summarize YouTube videos with Claude, OpenAI, Gemini and more — reliable transcript extraction via InnerTube API." },
   
   "optionsTitle": { "message": "Settings" },
