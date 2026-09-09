@@ -1,4 +1,4 @@
-import { PROMPTS, initPrompts } from './modules/config.js';
+import { PROMPTS, DEFAULT_PROMPTS, initPrompts } from './modules/config.js';
 
 document.addEventListener('DOMContentLoaded', init);
 
@@ -118,11 +118,15 @@ async function setupTemplates() {
     if (customTemplatesCache[lang]?.[fmt]?.[len]) {
       delete customTemplatesCache[lang][fmt][len];
       await chrome.storage.local.set({ customTemplates: customTemplatesCache });
+      PROMPTS[lang][fmt][len] = DEFAULT_PROMPTS[lang][fmt][len];
+      
+      const msg = document.getElementById('tpl-msg');
+      msg.textContent = 'Reset!';
+      msg.classList.remove('hidden');
+      setTimeout(() => msg.classList.add('hidden'), 2500);
+      
+      updateTextarea();
     }
-    
-    // We need to fetch the original prompt. To do this, we can just remove it from customTemplates and reload the page or fetch from a clean PROMPTS copy.
-    // Instead of doing a full reload, we can just reload the extension page to re-fetch the clean PROMPTS.
-    location.reload();
   });
 
   updateTextarea();
