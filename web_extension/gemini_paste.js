@@ -10,10 +10,11 @@ ytsRunPaste({
     'textarea',
   ],
   sendSelectors: [
-    'button[aria-label*="Send"]',
-    'button[aria-label*="send"]',
-    'button[aria-label*="Invia"]',
-    'button[data-testid*="send"]',
+    'button[aria-label*="send" i]',
+    'button[aria-label*="invia" i]',
+    'button[mattooltip*="send" i]',
+    'button[mattooltip*="invia" i]',
+    'button[data-testid*="send" i]',
     '.send-button',
     'button[type="submit"]',
   ],
@@ -26,11 +27,20 @@ ytsRunPaste({
     'model-response .markdown',
     '.markdown',
   ],
+  // Gemini may turn very large pastes into file attachments.
+  attachmentSelectors: [
+    'file-attachment-chip',
+    '[data-testid*="attachment"]',
+    '[aria-label*="attachment" i]',
+    '[aria-label*="allegat" i]', // IT
+  ],
   // Shown while Gemini is answering; used to pace a multi-part transcript.
   stopSelectors: [
-    'button[aria-label*="Stop"]',
-    'button[aria-label*="stop"]',
-    'button[aria-label*="Interrompi"]',
+    'button[aria-label*="stop" i]',
+    'button[aria-label*="interrompi" i]',
+    'button[mattooltip*="stop" i]',
+    'button[mattooltip*="interrompi" i]',
     '.stop-icon',
+    '[data-testid*="stop" i]',
   ],
 });

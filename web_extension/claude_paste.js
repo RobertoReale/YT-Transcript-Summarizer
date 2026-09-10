@@ -9,11 +9,10 @@ ytsRunPaste({
     'textarea',
   ],
   sendSelectors: [
-    'button[aria-label*="Send"]',
-    'button[aria-label*="send"]',
-    'button[aria-label*="Invia"]',
-    'button[data-testid*="send"]',
-    'button[data-testid*="submit"]',
+    'button[aria-label*="send" i]',
+    'button[aria-label*="invia" i]', // IT
+    'button[data-testid*="send" i]',
+    'button[data-testid*="submit" i]',
     'button[type="submit"]',
   ],
   // Claude turns a large paste into a "PASTED" attachment and leaves the composer
@@ -34,9 +33,8 @@ ytsRunPaste({
   ],
   // Shown while Claude is answering; used to pace a multi-part transcript.
   stopSelectors: [
-    'button[aria-label*="Stop"]',
-    'button[aria-label*="stop"]',
-    'button[aria-label*="Interrompi"]',
+    'button[aria-label*="stop" i]',
+    'button[aria-label*="interrompi" i]', // IT
     'button[data-testid="stop-button"]',
   ],
 });

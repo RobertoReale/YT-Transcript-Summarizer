@@ -11,9 +11,9 @@ ytsRunPaste({
   ],
   sendSelectors: [
     'button[data-testid="send-button"]',
-    'button[aria-label*="Send"]',
-    'button[aria-label*="send"]',
-    'button[data-testid*="send"]',
+    'button[aria-label*="send" i]',
+    'button[aria-label*="invia" i]', // IT
+    'button[data-testid*="send" i]',
     'button[type="submit"]',
   ],
   // Like Claude, ChatGPT turns a large paste into an attachment ("Pasted text —
@@ -38,7 +38,7 @@ ytsRunPaste({
   // Shown while ChatGPT is answering; used to pace a multi-part transcript.
   stopSelectors: [
     'button[data-testid="stop-button"]',
-    'button[aria-label*="Stop"]',
-    'button[aria-label*="stop"]',
+    'button[aria-label*="stop" i]',
+    'button[aria-label*="interrompi" i]', // IT
   ],
 });
