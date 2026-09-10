@@ -236,7 +236,7 @@ export function buildChunkMessages(transcript, settings) {
   if (merged && !isSeparate) parts.push(mergeChatPrompt(count, lang));
   return {
     parts, chunks: count, asked, autoSplit, merged, isSeparate,
-    mergePlan: merged ? mergePlanFor(settings, count, lang, cap) : null,
+    mergePlan: (merged && !isSeparate) ? mergePlanFor(settings, count, lang, cap) : null,
     overflow: overflowOf(parts)
   };
 }

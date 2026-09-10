@@ -844,7 +844,6 @@ async function summarizeTranscript(transcript, settings, jobId, appendLog, label
   await updateJobStatus(jobId, 'active', `${label} Merging ${n} parts...`);
   try {
     if (await cancellableSleep(1500)) throw new Error('Interrupted by user');
-    const lang = settings.transcriptLang || 'en';
     const merge = await callLLMWithRetries(joined, { ...settings, prompt: mergeApiPrompt(settings.prompt, n, lang) }, jobId, appendLog);
     return { summary: merge.summary, truncated, kept, total, chunks: n, merged: true };
   } catch (e) {

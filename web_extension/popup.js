@@ -88,7 +88,7 @@ async function init() {
     'useThinking', 'autoPaste', 'autoSubmit', 'combinedPrompt', 'saveTranscriptFile',
     'outputFormat', 'summaryLength', 'jobs', 'running', 'theme',
     'ttsState', 'ttsRate', 'ttsVoice', 'ttsText', 'webDelay', 'ttsLocalUrl',
-    'includeTimestamps', 'chunkMode', 'chunkMerge', 'timeStart', 'timeEnd'
+    'includeTimestamps', 'chunkMode', 'chunkAuto', 'chunkAutoNum', 'chunkMerge', 'timeStart', 'timeEnd'
   ]);
 
   const {
@@ -794,11 +794,11 @@ async function startBatch() {
   const {
     models = {}, customEndpointUrl, transcriptLang, customPrompt, mode,
     useThinking, autoPaste, autoSubmit, combinedPrompt, saveTranscriptFile, webDelay: storedDelay,
-    includeTimestamps, timeStart, timeEnd
+    includeTimestamps, chunkMode, chunkAuto, chunkAutoNum, chunkMerge, timeStart, timeEnd
   } = await chrome.storage.local.get([
     'models', 'customEndpointUrl', 'transcriptLang', 'customPrompt', 'mode',
     'useThinking', 'autoPaste', 'autoSubmit', 'combinedPrompt', 'saveTranscriptFile', 'webDelay',
-    'includeTimestamps', 'timeStart', 'timeEnd'
+    'includeTimestamps', 'chunkMode', 'chunkAuto', 'chunkAutoNum', 'chunkMerge', 'timeStart', 'timeEnd'
   ]);
 
   const globalFmt = [...document.querySelectorAll('.chip-fmt')].find(c => c.classList.contains('on'))?.dataset.fmt || 'chat';
@@ -870,6 +870,10 @@ async function startBatch() {
       saveTranscriptFile: !!saveTranscriptFile,
       webDelay: storedDelay ?? 30,
       includeTimestamps: includeTimestamps !== false,
+      chunkMode: chunkMode || 'same',
+      chunkAuto: !!chunkAuto,
+      chunkAutoNum: chunkAutoNum || 3,
+      chunkMerge: chunkMerge ?? true,
       timeStart: timeStart || '',
       timeEnd: timeEnd || ''
     }
