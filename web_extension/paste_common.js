@@ -56,7 +56,7 @@ async function ytsClaimPending() {
   // Re-read: if another tab claimed it in the meantime, its token wins.
   const { pendingLLMContent: after } = await chrome.storage.local.get('pendingLLMContent');
   if (after?.claimedBy !== token) return null;
-  return { parts, autoSubmit: after.autoSubmit, jobId: after.jobId ?? null, merge: after.merge || null };
+  return { parts, autoSubmit: after.autoSubmit, jobId: after.jobId ?? null, merge: after.merge || null, needReplyText: after.needReplyText || false, partIndex: after.partIndex ?? 0 };
 }
 
 async function ytsReleasePending(consumed) {
@@ -532,11 +532,11 @@ async function ytsRunPaste(cfg) {
         consumed = true;
         await chrome.storage.local.remove('pendingLLMContent');
       }
-      if (i < parts.length - 1) {
+      if (i < parts.length - 1 || pending.needReplyText) {
         await ytsWaitForReply(cfg);
         // Read it now, while it is the newest node on the page: at the end of a
         // long conversation "which answer belongs to which part" is guesswork.
-        if (plan && i < plan.at) {
+        if (pending.needReplyText || (plan && i < plan.at)) {
           const reply = await ytsReadNewReply(cfg, replies[replies.length - 1] || '');
           if (reply) replies.push(reply);
           else console.warn(`[YT Summarizer] could not read the answer to part ${i + 1}`);
@@ -558,7 +558,9 @@ async function ytsRunPaste(cfg) {
           // true: the partials were pasted into the merge message. false: they
           // could not be read and the merge leans on the chat's memory, which is
           // the case the status line has to warn about. null: no merge at all.
-          mergeInline
+          mergeInline,
+          replyText: pending.needReplyText ? (replies[replies.length - 1] || null) : null,
+          partIndex: pending.partIndex
         });
       } catch (_) {}
     }

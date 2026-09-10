@@ -1,0 +1,1380 @@
+commit 1b54c702b07640abd098a8c7119f1ecb63354e89
+Author: Roberto <robertoreale2006@gmail.com>
+Date:   Wed Sep 9 15:54:02 2026 +0200
+
+    fix: prompt templates UX and default prompt reversion
+    
+    - Fix options page reload issue when resetting a prompt template, which caused unsaved options (like API keys) to be lost.
+    
+    - Fix invalid HTML semantics by merging duplicate <main> tags in options.html.
+    
+    - Revert default prompts to remove the forced 'Executive Summary' and 'timeline' structure based on user feedback.
+
+diff --git a/web_extension/modules/config.js b/web_extension/modules/config.js
+index 6840e0f..1cebf86 100644
+--- a/web_extension/modules/config.js
++++ b/web_extension/modules/config.js
+@@ -201,83 +201,85 @@ export const PROMPTS = {
+   en: {
+     md: {
+       short:  "Summarize the following video as a markdown file (.md). Focus only on the key takeaways.",
+-      normal: "Generate a complete and detailed summary of the following video as a markdown file (.md). You must consider the entire video. Make sure you don't leave out any important points, explanations, or details. Always include an Executive Summary (TL;DR) and a reasoned timeline of the key points.",
+-      long:   "Generate an in-depth, structured summary of the following video as a markdown file (.md). Cover every section, argument, example, and detail mentioned. Organize the output with clear headings and subheadings. Include topic transitions where relevant. Do not omit anything. Always include an Executive Summary (TL;DR) and a reasoned timeline of the key points."
++      normal: "Generate a complete and detailed summary of the following video as a markdown file (.md). You must consider the entire video. Make sure you don't leave out any important points, explanations, or details.",
++      long:   "Generate an in-depth, structured summary of the following video as a markdown file (.md). Cover every section, argument, example, and detail mentioned. Organize the output with clear headings and subheadings. Include topic transitions where relevant. Do not omit anything."
+     },
+     chat: {
+       short:  "Summarize the following video. Focus only on the key takeaways.",
+-      normal: "Generate a complete and detailed summary of the following video. Consider the entire video. Make sure you don't leave out any important points, explanations, or details. Always include an Executive Summary (TL;DR) and a reasoned timeline of the key points.",
+-      long:   "Generate an in-depth, structured summary of the following video. Cover every section, argument, example, and detail mentioned. Organize the output with clear sections. Include topic transitions where relevant. Do not omit anything. Always include an Executive Summary (TL;DR) and a reasoned timeline of the key points."
++      normal: "Generate a complete and detailed summary of the following video. Consider the entire video. Make sure you don't leave out any important points, explanations, or details.",
++      long:   "Generate an in-depth, structured summary of the following video. Cover every section, argument, example, and detail mentioned. Organize the output with clear sections. Include topic transitions where relevant. Do not omit anything."
+     }
+   },
+   // ── Italian ────────────────────────────────────────────────────────────────
+   it: {
+     md: {
+       short:  "Riassumi il seguente video in un file markdown (.md). Concentrati solo sui punti chiave.",
+-      normal: "Genera un riassunto completo e dettagliato del seguente video in un file markdown (.md). Devi considerare l'intero video. Assicurati di non tralasciare alcun punto, spiegazione o dettaglio importante. Includi sempre un Executive Summary (TL;DR) e una timeline ragionata dei punti chiave.",
+-      long:   "Genera un riassunto approfondito e strutturato del seguente video in un file markdown (.md). Tratta ogni sezione, argomento, esempio e dettaglio menzionato. Organizza l'output con titoli e sottotitoli chiari. Includi le transizioni tra argomenti dove rilevante. Non omettere nulla. Includi sempre un Executive Summary (TL;DR) e una timeline ragionata dei punti chiave."
++      normal: "Genera un riassunto completo e dettagliato del seguente video in un file markdown (.md). Devi considerare l'intero video. Assicurati di non tralasciare alcun punto, spiegazione o dettaglio importante.",
++      long:   "Genera un riassunto approfondito e strutturato del seguente video in un file markdown (.md). Tratta ogni sezione, argomento, esempio e dettaglio menzionato. Organizza l'output con titoli e sottotitoli chiari. Includi le transizioni tra argomenti dove rilevante. Non omettere nulla."
+     },
+     chat: {
+       short:  "Riassumi il seguente video. Concentrati solo sui punti chiave.",
+-      normal: "Genera un riassunto completo e dettagliato del seguente video. Devi considerare l'intero video. Assicurati di non tralasciare alcun punto, spiegazione o dettaglio importante. Includi sempre un Executive Summary (TL;DR) e una timeline ragionata dei punti chiave.",
+-      long:   "Genera un riassunto approfondito e strutturato del seguente video. Tratta ogni sezione, argomento, esempio e dettaglio menzionato. Organizza l'output con sezioni chiare. Includi le transizioni tra argomenti dove rilevante. Non omettere nulla. Includi sempre un Executive Summary (TL;DR) e una timeline ragionata dei punti chiave."
++      normal: "Genera un riassunto completo e dettagliato del seguente video. Devi considerare l'intero video. Assicurati di non tralasciare alcun punto, spiegazione o dettaglio importante.",
++      long:   "Genera un riassunto approfondito e strutturato del seguente video. Tratta ogni sezione, argomento, esempio e dettaglio menzionato. Organizza l'output con sezioni chiare. Includi le transizioni tra argomenti dove rilevante. Non omettere nulla."
+     }
+   },
+   // ── Spanish ────────────────────────────────────────────────────────────────
+   es: {
+     md: {
+       short:  "Resume el siguiente video en un archivo markdown (.md). Céntrate solo en los puntos clave.",
+-      normal: "Genera un resumen completo y detallado del siguiente video en un archivo markdown (.md). Debes considerar el video completo. Asegúrate de no omitir ningún punto, explicación o detalle importante. Incluye siempre un Resumen Ejecutivo (TL;DR) y una línea de tiempo razonada de los puntos clave.",
+-      long:   "Genera un resumen detallado y estructurado del siguiente video en un archivo markdown (.md). Cubre cada sección, argumento, ejemplo y detalle mencionado. Organiza el resultado con títulos y subtítulos claros. Incluye transiciones entre temas donde sea relevante. No omitas nada. Incluye siempre un Resumen Ejecutivo (TL;DR) y una línea de tiempo razonada de los puntos clave."
++      normal: "Genera un resumen completo y detallado del siguiente video en un archivo markdown (.md). Debes considerar el video completo. Asegúrate de no omitir ningún punto, explicación o detalle importante.",
++      long:   "Genera un resumen detallado y estructurado del siguiente video en un archivo markdown (.md). Cubre cada sección, argumento, ejemplo y detalle mencionado. Organiza el resultado con títulos y subtítulos claros. Incluye transiciones entre temas donde sea relevante. No omitas nada."
+     },
+     chat: {
+       short:  "Resume el siguiente video. Céntrate solo en los puntos clave.",
+-      normal: "Genera un resumen completo y detallado del siguiente video. Debes considerar el video completo. Asegúrate de no omitir ningún punto, explicación o detalle importante. Incluye siempre un Resumen Ejecutivo (TL;DR) y una línea de tiempo razonada de los puntos clave.",
+-      long:   "Genera un resumen detallado y estructurado del siguiente video. Cubre cada sección, argumento, ejemplo y detalle mencionado. Organiza el resultado con secciones claras. Incluye transiciones entre temas donde sea relevante. No omitas nada. Incluye siempre un Resumen Ejecutivo (TL;DR) y una línea de tiempo razonada de los puntos clave."
++      normal: "Genera un resumen completo y detallado del siguiente video. Debes considerar el video completo. Asegúrate de no omitir ningún punto, explicación o detalle importante.",
++      long:   "Genera un resumen detallado y estructurado del siguiente video. Cubre cada sección, argumento, ejemplo y detalle mencionado. Organiza el resultado con secciones claras. Incluye transiciones entre temas donde sea relevante. No omitas nada."
+     }
+   },
+   // ── French ───────────────────────────────────────────────────────────────
+   fr: {
+     md: {
+       short:  "Résume la vidéo suivante dans un fichier markdown (.md). Concentre-toi uniquement sur les points clés.",
+-      normal: "Génère un résumé complet et détaillé de la vidéo suivante dans un fichier markdown (.md). Considère l'intégralité de la vidéo. Assure-toi de ne manquer aucun point, explication ou détail important. Inclus toujours un Résumé Exécutif (TL;DR) et une chronologie raisonnée des points clés.",
+-      long:   "Génère un résumé approfondi et structuré de la vidéo suivante dans un fichier markdown (.md). Couvre chaque section, argument, exemple et détail mentionné. Organise le résultat avec des titres et sous-titres clairs. Inclus les transitions entre sujets lorsque c'est pertinent. N'omets rien. Inclus toujours un Résumé Exécutif (TL;DR) et une chronologie raisonnée des points clés."
++      normal: "Génère un résumé complet et détaillé de la vidéo suivante dans un fichier markdown (.md). Considère l'intégralité de la vidéo. Assure-toi de ne manquer aucun point, explication ou détail important.",
++      long:   "Génère un résumé approfondi et structuré de la vidéo suivante dans un fichier markdown (.md). Couvre chaque section, argument, exemple et détail mentionné. Organise le résultat avec des titres et sous-titres clairs. Inclus les transitions entre sujets lorsque c'est pertinent. N'omets rien."
+     },
+     chat: {
+       short:  "Résume la vidéo suivante. Concentre-toi uniquement sur les points clés.",
+-      normal: "Génère un résumé complet et détaillé de la vidéo suivante. Considère l'intégralité de la vidéo. Assure-toi de ne manquer aucun point, explication ou détail important. Inclus toujours un Résumé Exécutif (TL;DR) et une chronologie raisonnée des points clés.",
+-      long:   "Génère un résumé approfondi et structuré de la vidéo suivante. Couvre chaque section, argument, exemple et détail mentionné. Organise le résultat avec des sections claires. Inclus les transitions entre sujets lorsque c'est pertinent. N'omets rien. Inclus toujours un Résumé Exécutif (TL;DR) et une chronologie raisonnée des points clés."
++      normal: "Génère un résumé complet et détaillé de la vidéo suivante. Considère l'intégralité de la vidéo. Assure-toi de ne manquer aucun point, explication ou détail important.",
++      long:   "Génère un résumé approfondi et structuré de la vidéo suivante. Couvre chaque section, argument, exemple et détail mentionné. Organise le résultat avec des sections claires. Inclus les transitions entre sujets lorsque c'est pertinent. N'omets rien."
+     }
+   },
+   // ── German ────────────────────────────────────────────────────────────────
+   de: {
+     md: {
+       short:  "Fasse das folgende Video als Markdown-Datei (.md) zusammen. Konzentriere dich nur auf die wichtigsten Punkte.",
+-      normal: "Erstelle eine vollständige und detaillierte Zusammenfassung des folgenden Videos als Markdown-Datei (.md). Berücksichtige das gesamte Video. Stelle sicher, dass du keine wichtigen Punkte, Erklärungen oder Details auslässt. Füge immer eine Executive Summary (TL;DR) und eine begründete Zeitleiste der wichtigsten Punkte bei.",
+-      long:   "Erstelle eine ausführliche, strukturierte Zusammenfassung des folgenden Videos als Markdown-Datei (.md). Erfasse jeden Abschnitt, jedes Argument, Beispiel und Detail. Organisiere die Ausgabe mit klaren Überschriften und Unterüberschriften. Füge Themenübergänge ein, wo relevant. Lasse nichts aus. Füge immer eine Executive Summary (TL;DR) und eine begründete Zeitleiste der wichtigsten Punkte bei."
++      normal: "Erstelle eine vollständige und detaillierte Zusammenfassung des folgenden Videos als Markdown-Datei (.md). Berücksichtige das gesamte Video. Stelle sicher, dass du keine wichtigen Punkte, Erklärungen oder Details auslässt.",
++      long:   "Erstelle eine ausführliche, strukturierte Zusammenfassung des folgenden Videos als Markdown-Datei (.md). Erfasse jeden Abschnitt, jedes Argument, Beispiel und Detail. Organisiere die Ausgabe mit klaren Überschriften und Unterüberschriften. Füge Themenübergänge ein, wo relevant. Lasse nichts aus."
+     },
+     chat: {
+       short:  "Fasse das folgende Video zusammen. Konzentriere dich nur auf die wichtigsten Punkte.",
+-      normal: "Erstelle eine vollständige und detaillierte Zusammenfassung des folgenden Videos. Berücksichtige das gesamte Video. Stelle sicher, dass du keine wichtigen Punkte, Erklärungen oder Details auslässt. Füge immer eine Executive Summary (TL;DR) und eine begründete Zeitleiste der wichtigsten Punkte bei.",
+-      long:   "Erstelle eine ausführliche, strukturierte Zusammenfassung des folgenden Videos. Erfasse jeden Abschnitt, jedes Argument, Beispiel und Detail. Organisiere die Ausgabe mit klaren Abschnitten. Füge Themenübergänge ein, wo relevant. Lasse nichts aus. Füge immer eine Executive Summary (TL;DR) und eine begründete Zeitleiste der wichtigsten Punkte bei."
++      normal: "Erstelle eine vollständige und detaillierte Zusammenfassung des folgenden Videos. Berücksichtige das gesamte Video. Stelle sicher, dass du keine wichtigen Punkte, Erklärungen oder Details auslässt.",
++      long:   "Erstelle eine ausführliche, strukturierte Zusammenfassung des folgenden Videos. Erfasse jeden Abschnitt, jedes Argument, Beispiel und Detail. Organisiere die Ausgabe mit klaren Abschnitten. Füge Themenübergänge ein, wo relevant. Lasse nichts aus."
+     }
+   },
+   // ── Portuguese ────────────────────────────────────────────────────────────
+   pt: {
+     md: {
+       short:  "Resume o seguinte vídeo num ficheiro markdown (.md). Concentra-te apenas nos pontos principais.",
+-      normal: "Gera um resumo completo e detalhado do seguinte vídeo num ficheiro markdown (.md). Considera o vídeo na íntegra. Certifica-te de que não omites nenhum ponto, explicação ou detalhe importante. Inclui sempre um Resumo Executivo (TL;DR) e uma cronologia fundamentada dos pontos-chave.",
+-      long:   "Gera um resumo aprofundado e estruturado do seguinte vídeo num ficheiro markdown (.md). Aborda cada secção, argumento, exemplo e detalhe mencionado. Organiza o resultado com títulos e subtítulos claros. Inclui as transições entre temas onde relevante. Não omitas nada. Inclui sempre um Resumo Executivo (TL;DR) e uma cronologia fundamentada dos pontos-chave."
++      normal: "Gera um resumo completo e detalhado do seguinte vídeo num ficheiro markdown (.md). Considera o vídeo na íntegra. Certifica-te de que não omites nenhum ponto, explicação ou detalhe importante.",
++      long:   "Gera um resumo aprofundado e estruturado do seguinte vídeo num ficheiro markdown (.md). Aborda cada secção, argumento, exemplo e detalhe mencionado. Organiza o resultado com títulos e subtítulos claros. Inclui as transições entre temas onde relevante. Não omitas nada."
+     },
+     chat: {
+       short:  "Resume o seguinte vídeo. Concentra-te apenas nos pontos principais.",
+-      normal: "Gera um resumo completo e detalhado do seguinte vídeo. Considera o vídeo na íntegra. Certifica-te de que não omites nenhum ponto, explicação ou detalhe importante. Inclui sempre um Resumo Executivo (TL;DR) e uma cronologia fundamentada dos pontos-chave.",
+-      long:   "Gera um resumo aprofundado e estruturado do seguinte vídeo. Aborda cada secção, argumento, exemplo e detalhe mencionado. Organiza o resultado com secções claras. Inclui as transições entre temas onde relevante. Não omitas nada. Inclui sempre um Resumo Executivo (TL;DR) e uma cronologia fundamentada dos pontos-chave."
++      normal: "Gera um resumo completo e detalhado do seguinte vídeo. Considera o vídeo na íntegra. Certifica-te de que não omites nenhum ponto, explicação ou detalhe importante.",
++      long:   "Gera um resumo aprofundado e estruturado do seguinte vídeo. Aborda cada secção, argumento, exemplo e detalhe mencionado. Organiza o resultado com secções claras. Inclui as transições entre temas onde relevante. Não omitas nada."
+     }
+   }
+   // ── Add new languages below following the same structure ──────────────────
+ };
+ 
++export const DEFAULT_PROMPTS = JSON.parse(JSON.stringify(PROMPTS));
++
+ export function getPreset(lang, fmt, len = 'normal') {
+   const isMD = fmt !== 'chat';
+   const langKey = PROMPTS[lang] ? lang : 'en';
+
+commit bd6306ea4962e0d9b11959957aac5611a2004a9d
+Author: Roberto <robertoreale2006@gmail.com>
+Date:   Wed Sep 9 15:07:48 2026 +0200
+
+    feat: add customizable prompt templates in options
+
+diff --git a/web_extension/modules/config.js b/web_extension/modules/config.js
+index ff36b62..6840e0f 100644
+--- a/web_extension/modules/config.js
++++ b/web_extension/modules/config.js
+@@ -297,3 +297,24 @@ export function isPreset(text) {
+   }
+   return false;
+ }
++
++export async function initPrompts() {
++  try {
++    const { customTemplates } = await chrome.storage.local.get('customTemplates');
++    if (!customTemplates) return;
++    
++    for (const lang of Object.keys(customTemplates)) {
++      if (!PROMPTS[lang]) continue;
++      for (const fmt of Object.keys(customTemplates[lang])) {
++        if (!PROMPTS[lang][fmt]) continue;
++        for (const len of Object.keys(customTemplates[lang][fmt])) {
++          if (PROMPTS[lang][fmt][len] !== undefined) {
++            PROMPTS[lang][fmt][len] = customTemplates[lang][fmt][len];
++          }
++        }
++      }
++    }
++  } catch (e) {
++    console.warn("Failed to load custom prompt templates", e);
++  }
++}
+
+commit 819d1ccc26a778cbc129d3f68dc1c2332fa81cf9
+Author: Roberto <robertoreale2006@gmail.com>
+Date:   Tue Sep 8 03:01:56 2026 +0200
+
+    fix: resolve 5 critical bugs causing TypeError crashes in popup
+    
+    - Add missing CONFIG.chunking (defaultParts, maxParts) and
+      CONFIG.maxWebMessageChars sections to config.js
+    - Fix wrong element ID: 'chunk-merge-cb' → 'merge-parts-cb' in
+      popup-settings.js (was causing null reference crash)
+    - Add missing #split-cap-note DOM element in popup.html
+    - Add missing change handler for #split-select-inline (global split)
+    - Add missing change handler for .job-split-select (per-video split)
+    - Add missing imports: setSplit, refreshSplitCapNote, setJobSplit
+    
+    Fixes: TypeError Cannot read properties of null (reading 'classList')
+    Fixes: TypeError Cannot read properties of undefined (reading 'maxParts')
+
+diff --git a/web_extension/modules/config.js b/web_extension/modules/config.js
+index f9f47c5..ff36b62 100644
+--- a/web_extension/modules/config.js
++++ b/web_extension/modules/config.js
+@@ -50,6 +50,24 @@ export const CONFIG = {
+     groq:       100000,   // 128k-token context
+     custom:     200000,   // typically a small local model
+     default:    200000
++  },
++
++  // ── Chunking config ─────────────────────────────────────────────────────────
++  // Controls transcript splitting into multiple parts for long videos.
++  chunking: {
++    defaultParts: 1,      // send the transcript in one go by default
++    maxParts:     10      // ceiling for the split selector
++  },
++
++  // ── Web mode composer character limits ──────────────────────────────────────
++  // Per-provider hard cap on what the chat composer accepts in a single message.
++  // A transcript exceeding this is split automatically (even if the user picked
++  // "1 part") so the tail isn't silently truncated by the composer.
++  maxWebMessageChars: {
++    anthropic:  90000,    // Claude.ai truncates around 95k
++    openai:     60000,    // ChatGPT truncates around 65k
++    gemini:     32000,    // Gemini truncates at exactly 32k
++    default:    0         // 0 = no cap known, don't auto-split
+   }
+ };
+ 
+
+commit d9b05c86355f77918381ff152583f4e2d894a846
+Author: Roberto <robertoreale2006@gmail.com>
+Date:   Tue Sep 8 00:47:13 2026 +0200
+
+    feat: CSP Block Resolution (markdown.js)
+
+diff --git a/web_extension/modules/config.js b/web_extension/modules/config.js
+index df3c8b5..f9f47c5 100644
+--- a/web_extension/modules/config.js
++++ b/web_extension/modules/config.js
+@@ -183,78 +183,78 @@ export const PROMPTS = {
+   en: {
+     md: {
+       short:  "Summarize the following video as a markdown file (.md). Focus only on the key takeaways.",
+-      normal: "Generate a complete and detailed summary of the following video as a markdown file (.md). You must consider the entire video. Make sure you don't leave out any important points, explanations, or details.",
+-      long:   "Generate an in-depth, structured summary of the following video as a markdown file (.md). Cover every section, argument, example, and detail mentioned. Organize the output with clear headings and subheadings. Include topic transitions where relevant. Do not omit anything."
++      normal: "Generate a complete and detailed summary of the following video as a markdown file (.md). You must consider the entire video. Make sure you don't leave out any important points, explanations, or details. Always include an Executive Summary (TL;DR) and a reasoned timeline of the key points.",
++      long:   "Generate an in-depth, structured summary of the following video as a markdown file (.md). Cover every section, argument, example, and detail mentioned. Organize the output with clear headings and subheadings. Include topic transitions where relevant. Do not omit anything. Always include an Executive Summary (TL;DR) and a reasoned timeline of the key points."
+     },
+     chat: {
+       short:  "Summarize the following video. Focus only on the key takeaways.",
+-      normal: "Generate a complete and detailed summary of the following video. Consider the entire video. Make sure you don't leave out any important points, explanations, or details.",
+-      long:   "Generate an in-depth, structured summary of the following video. Cover every section, argument, example, and detail mentioned. Organize the output with clear sections. Include topic transitions where relevant. Do not omit anything."
++      normal: "Generate a complete and detailed summary of the following video. Consider the entire video. Make sure you don't leave out any important points, explanations, or details. Always include an Executive Summary (TL;DR) and a reasoned timeline of the key points.",
++      long:   "Generate an in-depth, structured summary of the following video. Cover every section, argument, example, and detail mentioned. Organize the output with clear sections. Include topic transitions where relevant. Do not omit anything. Always include an Executive Summary (TL;DR) and a reasoned timeline of the key points."
+     }
+   },
+   // ── Italian ────────────────────────────────────────────────────────────────
+   it: {
+     md: {
+       short:  "Riassumi il seguente video in un file markdown (.md). Concentrati solo sui punti chiave.",
+-      normal: "Genera un riassunto completo e dettagliato del seguente video in un file markdown (.md). Devi considerare l'intero video. Assicurati di non tralasciare alcun punto, spiegazione o dettaglio importante.",
+-      long:   "Genera un riassunto approfondito e strutturato del seguente video in un file markdown (.md). Tratta ogni sezione, argomento, esempio e dettaglio menzionato. Organizza l'output con titoli e sottotitoli chiari. Includi le transizioni tra argomenti dove rilevante. Non omettere nulla."
++      normal: "Genera un riassunto completo e dettagliato del seguente video in un file markdown (.md). Devi considerare l'intero video. Assicurati di non tralasciare alcun punto, spiegazione o dettaglio importante. Includi sempre un Executive Summary (TL;DR) e una timeline ragionata dei punti chiave.",
++      long:   "Genera un riassunto approfondito e strutturato del seguente video in un file markdown (.md). Tratta ogni sezione, argomento, esempio e dettaglio menzionato. Organizza l'output con titoli e sottotitoli chiari. Includi le transizioni tra argomenti dove rilevante. Non omettere nulla. Includi sempre un Executive Summary (TL;DR) e una timeline ragionata dei punti chiave."
+     },
+     chat: {
+       short:  "Riassumi il seguente video. Concentrati solo sui punti chiave.",
+-      normal: "Genera un riassunto completo e dettagliato del seguente video. Devi considerare l'intero video. Assicurati di non tralasciare alcun punto, spiegazione o dettaglio importante.",
+-      long:   "Genera un riassunto approfondito e strutturato del seguente video. Tratta ogni sezione, argomento, esempio e dettaglio menzionato. Organizza l'output con sezioni chiare. Includi le transizioni tra argomenti dove rilevante. Non omettere nulla."
++      normal: "Genera un riassunto completo e dettagliato del seguente video. Devi considerare l'intero video. Assicurati di non tralasciare alcun punto, spiegazione o dettaglio importante. Includi sempre un Executive Summary (TL;DR) e una timeline ragionata dei punti chiave.",
++      long:   "Genera un riassunto approfondito e strutturato del seguente video. Tratta ogni sezione, argomento, esempio e dettaglio menzionato. Organizza l'output con sezioni chiare. Includi le transizioni tra argomenti dove rilevante. Non omettere nulla. Includi sempre un Executive Summary (TL;DR) e una timeline ragionata dei punti chiave."
+     }
+   },
+   // ── Spanish ────────────────────────────────────────────────────────────────
+   es: {
+     md: {
+       short:  "Resume el siguiente video en un archivo markdown (.md). Céntrate solo en los puntos clave.",
+-      normal: "Genera un resumen completo y detallado del siguiente video en un archivo markdown (.md). Debes considerar el video completo. Asegúrate de no omitir ningún punto, explicación o detalle importante.",
+-      long:   "Genera un resumen detallado y estructurado del siguiente video en un archivo markdown (.md). Cubre cada sección, argumento, ejemplo y detalle mencionado. Organiza el resultado con títulos y subtítulos claros. Incluye transiciones entre temas donde sea relevante. No omitas nada."
++      normal: "Genera un resumen completo y detallado del siguiente video en un archivo markdown (.md). Debes considerar el video completo. Asegúrate de no omitir ningún punto, explicación o detalle importante. Incluye siempre un Resumen Ejecutivo (TL;DR) y una línea de tiempo razonada de los puntos clave.",
++      long:   "Genera un resumen detallado y estructurado del siguiente video en un archivo markdown (.md). Cubre cada sección, argumento, ejemplo y detalle mencionado. Organiza el resultado con títulos y subtítulos claros. Incluye transiciones entre temas donde sea relevante. No omitas nada. Incluye siempre un Resumen Ejecutivo (TL;DR) y una línea de tiempo razonada de los puntos clave."
+     },
+     chat: {
+       short:  "Resume el siguiente video. Céntrate solo en los puntos clave.",
+-      normal: "Genera un resumen completo y detallado del siguiente video. Debes considerar el video completo. Asegúrate de no omitir ningún punto, explicación o detalle importante.",
+-      long:   "Genera un resumen detallado y estructurado del siguiente video. Cubre cada sección, argumento, ejemplo y detalle mencionado. Organiza el resultado con secciones claras. Incluye transiciones entre temas donde sea relevante. No omitas nada."
++      normal: "Genera un resumen completo y detallado del siguiente video. Debes considerar el video completo. Asegúrate de no omitir ningún punto, explicación o detalle importante. Incluye siempre un Resumen Ejecutivo (TL;DR) y una línea de tiempo razonada de los puntos clave.",
++      long:   "Genera un resumen detallado y estructurado del siguiente video. Cubre cada sección, argumento, ejemplo y detalle mencionado. Organiza el resultado con secciones claras. Incluye transiciones entre temas donde sea relevante. No omitas nada. Incluye siempre un Resumen Ejecutivo (TL;DR) y una línea de tiempo razonada de los puntos clave."
+     }
+   },
+   // ── French ───────────────────────────────────────────────────────────────
+   fr: {
+     md: {
+       short:  "Résume la vidéo suivante dans un fichier markdown (.md). Concentre-toi uniquement sur les points clés.",
+-      normal: "Génère un résumé complet et détaillé de la vidéo suivante dans un fichier markdown (.md). Considère l'intégralité de la vidéo. Assure-toi de ne manquer aucun point, explication ou détail important.",
+-      long:   "Génère un résumé approfondi et structuré de la vidéo suivante dans un fichier markdown (.md). Couvre chaque section, argument, exemple et détail mentionné. Organise le résultat avec des titres et sous-titres clairs. Inclus les transitions entre sujets lorsque c'est pertinent. N'omets rien."
++      normal: "Génère un résumé complet et détaillé de la vidéo suivante dans un fichier markdown (.md). Considère l'intégralité de la vidéo. Assure-toi de ne manquer aucun point, explication ou détail important. Inclus toujours un Résumé Exécutif (TL;DR) et une chronologie raisonnée des points clés.",
++      long:   "Génère un résumé approfondi et structuré de la vidéo suivante dans un fichier markdown (.md). Couvre chaque section, argument, exemple et détail mentionné. Organise le résultat avec des titres et sous-titres clairs. Inclus les transitions entre sujets lorsque c'est pertinent. N'omets rien. Inclus toujours un Résumé Exécutif (TL;DR) et une chronologie raisonnée des points clés."
+     },
+     chat: {
+       short:  "Résume la vidéo suivante. Concentre-toi uniquement sur les points clés.",
+-      normal: "Génère un résumé complet et détaillé de la vidéo suivante. Considère l'intégralité de la vidéo. Assure-toi de ne manquer aucun point, explication ou détail important.",
+-      long:   "Génère un résumé approfondi et structuré de la vidéo suivante. Couvre chaque section, argument, exemple et détail mentionné. Organise le résultat avec des sections claires. Inclus les transitions entre sujets lorsque c'est pertinent. N'omets rien."
++      normal: "Génère un résumé complet et détaillé de la vidéo suivante. Considère l'intégralité de la vidéo. Assure-toi de ne manquer aucun point, explication ou détail important. Inclus toujours un Résumé Exécutif (TL;DR) et une chronologie raisonnée des points clés.",
++      long:   "Génère un résumé approfondi et structuré de la vidéo suivante. Couvre chaque section, argument, exemple et détail mentionné. Organise le résultat avec des sections claires. Inclus les transitions entre sujets lorsque c'est pertinent. N'omets rien. Inclus toujours un Résumé Exécutif (TL;DR) et une chronologie raisonnée des points clés."
+     }
+   },
+   // ── German ────────────────────────────────────────────────────────────────
+   de: {
+     md: {
+       short:  "Fasse das folgende Video als Markdown-Datei (.md) zusammen. Konzentriere dich nur auf die wichtigsten Punkte.",
+-      normal: "Erstelle eine vollständige und detaillierte Zusammenfassung des folgenden Videos als Markdown-Datei (.md). Berücksichtige das gesamte Video. Stelle sicher, dass du keine wichtigen Punkte, Erklärungen oder Details auslässt.",
+-      long:   "Erstelle eine ausführliche, strukturierte Zusammenfassung des folgenden Videos als Markdown-Datei (.md). Erfasse jeden Abschnitt, jedes Argument, Beispiel und Detail. Organisiere die Ausgabe mit klaren Überschriften und Unterüberschriften. Füge Themenübergänge ein, wo relevant. Lasse nichts aus."
++      normal: "Erstelle eine vollständige und detaillierte Zusammenfassung des folgenden Videos als Markdown-Datei (.md). Berücksichtige das gesamte Video. Stelle sicher, dass du keine wichtigen Punkte, Erklärungen oder Details auslässt. Füge immer eine Executive Summary (TL;DR) und eine begründete Zeitleiste der wichtigsten Punkte bei.",
++      long:   "Erstelle eine ausführliche, strukturierte Zusammenfassung des folgenden Videos als Markdown-Datei (.md). Erfasse jeden Abschnitt, jedes Argument, Beispiel und Detail. Organisiere die Ausgabe mit klaren Überschriften und Unterüberschriften. Füge Themenübergänge ein, wo relevant. Lasse nichts aus. Füge immer eine Executive Summary (TL;DR) und eine begründete Zeitleiste der wichtigsten Punkte bei."
+     },
+     chat: {
+       short:  "Fasse das folgende Video zusammen. Konzentriere dich nur auf die wichtigsten Punkte.",
+-      normal: "Erstelle eine vollständige und detaillierte Zusammenfassung des folgenden Videos. Berücksichtige das gesamte Video. Stelle sicher, dass du keine wichtigen Punkte, Erklärungen oder Details auslässt.",
+-      long:   "Erstelle eine ausführliche, strukturierte Zusammenfassung des folgenden Videos. Erfasse jeden Abschnitt, jedes Argument, Beispiel und Detail. Organisiere die Ausgabe mit klaren Abschnitten. Füge Themenübergänge ein, wo relevant. Lasse nichts aus."
++      normal: "Erstelle eine vollständige und detaillierte Zusammenfassung des folgenden Videos. Berücksichtige das gesamte Video. Stelle sicher, dass du keine wichtigen Punkte, Erklärungen oder Details auslässt. Füge immer eine Executive Summary (TL;DR) und eine begründete Zeitleiste der wichtigsten Punkte bei.",
++      long:   "Erstelle eine ausführliche, strukturierte Zusammenfassung des folgenden Videos. Erfasse jeden Abschnitt, jedes Argument, Beispiel und Detail. Organisiere die Ausgabe mit klaren Abschnitten. Füge Themenübergänge ein, wo relevant. Lasse nichts aus. Füge immer eine Executive Summary (TL;DR) und eine begründete Zeitleiste der wichtigsten Punkte bei."
+     }
+   },
+   // ── Portuguese ────────────────────────────────────────────────────────────
+   pt: {
+     md: {
+       short:  "Resume o seguinte vídeo num ficheiro markdown (.md). Concentra-te apenas nos pontos principais.",
+-      normal: "Gera um resumo completo e detalhado do seguinte vídeo num ficheiro markdown (.md). Considera o vídeo na íntegra. Certifica-te de que não omites nenhum ponto, explicação ou detalhe importante.",
+-      long:   "Gera um resumo aprofundado e estruturado do seguinte vídeo num ficheiro markdown (.md). Aborda cada secção, argumento, exemplo e detalhe mencionado. Organiza o resultado com títulos e subtítulos claros. Inclui as transições entre temas onde relevante. Não omitas nada."
++      normal: "Gera um resumo completo e detalhado do seguinte vídeo num ficheiro markdown (.md). Considera o vídeo na íntegra. Certifica-te de que não omites nenhum ponto, explicação ou detalhe importante. Inclui sempre um Resumo Executivo (TL;DR) e uma cronologia fundamentada dos pontos-chave.",
++      long:   "Gera um resumo aprofundado e estruturado do seguinte vídeo num ficheiro markdown (.md). Aborda cada secção, argumento, exemplo e detalhe mencionado. Organiza o resultado com títulos e subtítulos claros. Inclui as transições entre temas onde relevante. Não omitas nada. Inclui sempre um Resumo Executivo (TL;DR) e uma cronologia fundamentada dos pontos-chave."
+     },
+     chat: {
+       short:  "Resume o seguinte vídeo. Concentra-te apenas nos pontos principais.",
+-      normal: "Gera um resumo completo e detalhado do seguinte vídeo. Considera o vídeo na íntegra. Certifica-te de que não omites nenhum ponto, explicação ou detalhe importante.",
+-      long:   "Gera um resumo aprofundado e estruturado do seguinte vídeo. Aborda cada secção, argumento, exemplo e detalhe mencionado. Organiza o resultado com secções claras. Inclui as transições entre temas onde relevante. Não omitas nada."
++      normal: "Gera um resumo completo e detalhado do seguinte vídeo. Considera o vídeo na íntegra. Certifica-te de que não omites nenhum ponto, explicação ou detalhe importante. Inclui sempre um Resumo Executivo (TL;DR) e uma cronologia fundamentada dos pontos-chave.",
++      long:   "Gera um resumo aprofundado e estruturado do seguinte vídeo. Aborda cada secção, argumento, exemplo e detalhe mencionado. Organiza o resultado com secções claras. Inclui as transições entre temas onde relevante. Não omitas nada. Inclui sempre um Resumo Executivo (TL;DR) e uma cronologia fundamentada dos pontos-chave."
+     }
+   }
+   // ── Add new languages below following the same structure ──────────────────
+
+commit 2f8deb04caa15bbb332828a6a5d3d9d56852a048
+Author: Roberto <robertoreale2006@gmail.com>
+Date:   Tue Sep 8 00:29:38 2026 +0200
+
+    refactor: Purge Split/Chunking Configuration from modules/config.js
+
+diff --git a/web_extension/modules/config.js b/web_extension/modules/config.js
+index 1d7421a..df3c8b5 100644
+--- a/web_extension/modules/config.js
++++ b/web_extension/modules/config.js
+@@ -47,104 +47,13 @@ export const CONFIG = {
+     openai:     350000,   // 128k-token context
+     gemini:     900000,   // 1M-token context
+     openrouter: 300000,   // unknown model — conservative
++    groq:       100000,   // 128k-token context
+     custom:     200000,   // typically a small local model
+     default:    200000
+-  },
+-
+-  // Optional splitting of a transcript into several sequential requests. Off by
+-  // default (parts = 1): it multiplies cost and latency, and only pays off on
+-  // videos long enough that one request would truncate or lose detail.
+-  chunking: {
+-    maxParts:      10,     // upper bound for the UI / sanitizer
+-    // Ceiling for the AUTOMATIC raise only (web mode, composer cap). It is
+-    // deliberately higher than `maxParts`: the two limits exist for opposite
+-    // reasons. `maxParts` caps what the user may *ask* for, to stop them paying
+-    // for pointless extra requests. This one caps a raise the user did not ask
+-    // for, whose whole purpose is to keep the video from being silently cut —
+-    // holding it at 10 meant a video over ~5 h lost its tail no matter what.
+-    // The cost is run length (each part waits for a full reply), which is why
+-    // it is not unbounded; past this the overflow warning takes over.
+-    maxAutoParts:  20,
+-    defaultParts:  1,      // 1 = disabled
+-    // The only case where the requested number is not honoured downwards:
+-    // splitting a 3-minute video into 8 pieces would just be 8 pointless
+-    // requests.
+-    minPartChars:  2000
+-  },
+-
+-  // Web mode types each message into the provider's own composer, which has its
+-  // own hard limit — far below the model's context. Gemini silently keeps the
+-  // first 32 000 characters and drops the rest, so a "2 parts" split of a long
+-  // video lost ~40% of it without a word anywhere. A value here raises the
+-  // number of parts until every message fits; null means "no known limit, do
+-  // not split on this account".
+-  // Only measure-backed numbers belong here: a made-up cap costs the user extra
+-  // round-trips for nothing.
+-  // NOTE ON `null`: the lookup is `[provider] ?? default`, so an explicit `null`
+-  // here falls through to `default`. The entries below are documentation of what
+-  // was measured — if `default` ever becomes a number, revisit them.
+-  maxWebMessageChars: {
+-    // Measured 2026-07-27 by pasting 300 000 chars of fixed-width numbered lines
+-    // into the live composer and reading the DOM back (nothing submitted).
+-    gemini:    32000,   // truncates at EXACTLY 32 000 — cut mid-word at line 543/5085
+-    openai:    null,    // no cap: 700 000 chars pasted back intact, all 11 865 lines
+-    anthropic: null,    // no cap: a real Ctrl+V of 300 000 chars is converted into a
+-                        // "PASTED" attachment instead of being truncated, and the
+-                        // model reads it whole. The extension inserts text via
+-                        // execCommand rather than pasting, so it stays plain text.
+-    default:   null
+   }
+ };
+ 
+-// Wording injected around each chunk when a transcript is split. Keyed like
+-// PROMPTS so the partial summaries stay in the user's language; falls back to
+-// English for any language without an entry.
+-// `instruction` rides along with each chunk; `mergeChat` is the extra message
+-// sent to a web chat once every part has been posted (the conversation itself
+-// holds the partial summaries); `mergeApi` heads the final API call, which is
+-// followed by the partial summaries as text.
+-export const CHUNK_NOTES = {
+-  en: {
+-    part: 'Part',
+-    instruction: (i, n) => `This is part ${i} of ${n} of the transcript of ONE single video. Summarize only this part, following the instructions above. Do not write an introduction or a conclusion about the whole video — the parts will be joined together afterwards.`,
+-    mergeChat: (n) => `You have now seen all ${n} parts of the video. Write a SINGLE unified summary of the whole video, merging the ${n} partial summaries above: remove repetitions, keep every distinct point, and follow the formatting requested at the start. Output only the final summary.`,
+-    mergeApi: (n) => `Below are ${n} partial summaries of consecutive parts of ONE single video. Merge them into a SINGLE unified summary of the whole video: remove repetitions, keep every distinct point, and follow the formatting requested above. Output only the final summary.`
+-  },
+-  it: {
+-    part: 'Parte',
+-    instruction: (i, n) => `Questa è la parte ${i} di ${n} della trascrizione di UN SOLO video. Riassumi solo questa parte, seguendo le istruzioni sopra. Non scrivere introduzioni o conclusioni sull'intero video — le parti verranno unite successivamente.`,
+-    mergeChat: (n) => `Ora hai visto tutte le ${n} parti del video. Scrivi UN UNICO riassunto complessivo dell'intero video, unendo i ${n} riassunti parziali qui sopra: elimina le ripetizioni, conserva ogni punto distinto e rispetta il formato richiesto all'inizio. Restituisci solo il riassunto finale.`,
+-    mergeApi: (n) => `Qui sotto trovi ${n} riassunti parziali di parti consecutive di UN SOLO video. Uniscili in UN UNICO riassunto complessivo dell'intero video: elimina le ripetizioni, conserva ogni punto distinto e rispetta il formato richiesto sopra. Restituisci solo il riassunto finale.`
+-  },
+-  es: {
+-    part: 'Parte',
+-    instruction: (i, n) => `Esta es la parte ${i} de ${n} de la transcripción de UN SOLO video. Resume únicamente esta parte, siguiendo las instrucciones anteriores. No escribas una introducción ni una conclusión sobre el video completo — las partes se unirán después.`,
+-    mergeChat: (n) => `Ya has visto las ${n} partes del video. Escribe UN ÚNICO resumen unificado del video completo, fusionando los ${n} resúmenes parciales anteriores: elimina las repeticiones, conserva todos los puntos distintos y respeta el formato pedido al principio. Devuelve solo el resumen final.`,
+-    mergeApi: (n) => `A continuación hay ${n} resúmenes parciales de partes consecutivas de UN SOLO video. Fusiónalos en UN ÚNICO resumen del video completo: elimina las repeticiones, conserva todos los puntos distintos y respeta el formato pedido arriba. Devuelve solo el resumen final.`
+-  },
+-  fr: {
+-    part: 'Partie',
+-    instruction: (i, n) => `Ceci est la partie ${i} sur ${n} de la transcription d'UNE SEULE vidéo. Résume uniquement cette partie, en suivant les instructions ci-dessus. N'écris ni introduction ni conclusion sur la vidéo entière — les parties seront assemblées ensuite.`,
+-    mergeChat: (n) => `Tu as maintenant vu les ${n} parties de la vidéo. Rédige UN SEUL résumé unifié de la vidéo entière, en fusionnant les ${n} résumés partiels ci-dessus : supprime les répétitions, conserve chaque point distinct et respecte le format demandé au début. Ne renvoie que le résumé final.`,
+-    mergeApi: (n) => `Voici ${n} résumés partiels de parties consécutives d'UNE SEULE vidéo. Fusionne-les en UN SEUL résumé de la vidéo entière : supprime les répétitions, conserve chaque point distinct et respecte le format demandé ci-dessus. Ne renvoie que le résumé final.`
+-  },
+-  de: {
+-    part: 'Teil',
+-    instruction: (i, n) => `Dies ist Teil ${i} von ${n} des Transkripts EINES einzigen Videos. Fasse nur diesen Teil zusammen und folge dabei den obigen Anweisungen. Schreibe keine Einleitung und kein Fazit über das gesamte Video — die Teile werden anschließend zusammengefügt.`,
+-    mergeChat: (n) => `Du hast jetzt alle ${n} Teile des Videos gesehen. Schreibe EINE einzige zusammenhängende Zusammenfassung des gesamten Videos, indem du die ${n} Teilzusammenfassungen oben zusammenführst: entferne Wiederholungen, behalte jeden eigenständigen Punkt und halte dich an das anfangs geforderte Format. Gib nur die finale Zusammenfassung aus.`,
+-    mergeApi: (n) => `Unten stehen ${n} Teilzusammenfassungen aufeinanderfolgender Abschnitte EINES einzigen Videos. Führe sie zu EINER einzigen Zusammenfassung des gesamten Videos zusammen: entferne Wiederholungen, behalte jeden eigenständigen Punkt und halte dich an das oben geforderte Format. Gib nur die finale Zusammenfassung aus.`
+-  },
+-  pt: {
+-    part: 'Parte',
+-    instruction: (i, n) => `Esta é a parte ${i} de ${n} da transcrição de UM único vídeo. Resume apenas esta parte, seguindo as instruções acima. Não escrevas uma introdução nem uma conclusão sobre o vídeo inteiro — as partes serão unidas depois.`,
+-    mergeChat: (n) => `Já viste as ${n} partes do vídeo. Escreve UM ÚNICO resumo unificado do vídeo inteiro, juntando os ${n} resumos parciais acima: elimina repetições, mantém todos os pontos distintos e respeita o formato pedido no início. Devolve apenas o resumo final.`,
+-    mergeApi: (n) => `Abaixo estão ${n} resumos parciais de partes consecutivas de UM único vídeo. Junta-os num ÚNICO resumo do vídeo inteiro: elimina repetições, mantém todos os pontos distintos e respeita o formato pedido acima. Devolve apenas o resumo final.`
+-  }
+-};
+ 
+-export function chunkNotes(lang) {
+-  return CHUNK_NOTES[lang] || CHUNK_NOTES.en;
+-}
+ 
+ // The transcript carries `[m:ss]` anchors every half minute, but a model only
+ // uses them if it is told to. Deliberately NOT folded into PROMPTS: `isPreset()`
+@@ -210,16 +119,28 @@ export const PROVIDERS = {
+   gemini: {
+     name: 'Google Gemini',
+     models: [
+-      { value: 'gemini-2.0-flash',  label: 'gemini-2.0-flash (Recommended)' },
++      { value: 'gemini-2.5-flash',  label: 'gemini-2.5-flash (Fast & Recommended)' },
++      { value: 'gemini-2.0-flash',  label: 'gemini-2.0-flash' },
+       { value: 'gemini-1.5-pro',    label: 'gemini-1.5-pro' },
+-      { value: 'gemini-1.5-flash',  label: 'gemini-1.5-flash (Fast)' },
++      { value: 'gemini-1.5-flash',  label: 'gemini-1.5-flash' },
+     ],
+-    defaultModel:      'gemini-2.0-flash',
++    defaultModel:      'gemini-2.5-flash',
+     supportsThinking:  false,
+     hasWebUI:          true,
+     apiKeyLabel:       'API Key (Google AI Studio)',
+     apiKeyPlaceholder: 'AIza...',
+   },
++  groq: {
++    name: 'Groq',
++    models: [
++      { value: 'llama-3.3-70b-versatile', label: 'llama-3.3-70b-versatile (Recommended)' }
++    ],
++    defaultModel:      'llama-3.3-70b-versatile',
++    supportsThinking:  false,
++    hasWebUI:          false,
++    apiKeyLabel:       'API Key',
++    apiKeyPlaceholder: 'gsk_...',
++  },
+   openrouter: {
+     name: 'OpenRouter',
+     models: [
+
+commit b59dcd6767368fd4c9bc3a6db400bce16d1f0893
+Author: Roberto <robertoreale2006@gmail.com>
+Date:   Tue Jul 28 15:49:02 2026 +0200
+
+    web_extension v10.20.0: timestamps in summaries, five paste/split fixes
+    
+    Timestamps (new). All three timedtext parsers already read the cue start time
+    for the coverage check and then threw it away, so a summary could never point at
+    a moment in the video. The transcript now carries [m:ss] anchors every 30 s —
+    one per cue would add ~120k chars to a 2 h video and eat the composer budget the
+    split exists to protect — the model is told to cite them, but only when the
+    transcript really has them, and the .md turns them into links that jump.
+    The instruction is appended at send time rather than folded into PROMPTS:
+    isPreset() compares stored prompts against those strings, so editing one would
+    freeze every existing user prompt as "custom" forever.
+    
+    Fixes:
+    
+    P  "1 part" on Gemini silently became N parts, and whether a merge followed was
+       decided by a checkbox the UI hides at 1 part — so a run could end with N
+       partial summaries and no whole one, or with an extra message, depending on a
+       control the user could not see. Asked-for and forced splits are now distinct:
+       asking for one part means asking for one summary, so the merge is not
+       optional there, and the reason for the split is stated in the popup before
+       the run and in the status line after it.
+    
+    Q  The paste retry fired when the text had not been SEEN to land within 15 s,
+       which is not the same as it not being there. A slow editor got a second copy
+       stacked under the first: one message carrying the prompt and the whole
+       transcript twice. It now re-checks, then clears, before re-pasting.
+    
+    R  A payload was kept for a reload whenever the send could not be confirmed,
+       including when the text was already in the composer and had probably gone
+       out. Any provider tab opened within 5 minutes then replayed the whole
+       sequence. Kept now only when nothing reached the editor, and for one retry.
+    
+    S  pendingLLMContent is one key for the whole browser, so the next video in a
+       web batch overwrites it. A chat tab still booting claimed the wrong video's
+       transcript and reported it under the wrong job. A payload written after this
+       document started belongs to a tab that has not opened yet; the abandoned job
+       is now closed honestly instead of sitting on "Sending" forever.
+    
+    T  A failed paste consumed its pasteWatch entry, so the retry the status line
+       tells the user to make could never correct the verdict. The entry now leaves
+       on success only.
+    
+    Tests: 240 assertions across 11 suites, up from 140 across 6. Every one of the
+    nine fix points is mutation-verified: the bug put back, the test required to go
+    red. ytsClearInput is verified on real editors in Chrome 150 and Firefox 153
+    via test/e2e/clear-retry, each case carrying a control that proves the doubling
+    is real without it.
+    
+    ROADMAP.md: the two gaps against comparable tools that are worth closing — no
+    fallback for videos without captions, and subtitle search plus per-chapter
+    summaries — with sources and how each would be built here.
+    
+    test/e2e/upload-probe.mjs: attaching the transcript as a file instead of typing
+    it was re-measured after Gemini's composer redesign, which is the condition
+    NOTES 4.4 leaves that question open on. Still no file input anywhere, shadow
+    roots included, and a synthetic drop produces no chip; the assignment mechanism
+    itself works, so the probe is kept for the next redesign.
+
+diff --git a/web_extension/modules/config.js b/web_extension/modules/config.js
+index e1c921e..1d7421a 100644
+--- a/web_extension/modules/config.js
++++ b/web_extension/modules/config.js
+@@ -146,6 +146,25 @@ export function chunkNotes(lang) {
+   return CHUNK_NOTES[lang] || CHUNK_NOTES.en;
+ }
+ 
++// The transcript carries `[m:ss]` anchors every half minute, but a model only
++// uses them if it is told to. Deliberately NOT folded into PROMPTS: `isPreset()`
++// compares a stored prompt against those strings to decide whether it may still
++// be auto-updated, so editing a preset would quietly turn every existing user's
++// prompt into a "custom" one, frozen forever. This is appended at send time
++// instead, and only when the transcript really has anchors.
++export const TIMESTAMP_NOTES = {
++  en: 'The transcript is marked with [m:ss] timestamps. Cite the relevant one in square brackets next to each point you make, copied exactly as it appears.',
++  it: 'La trascrizione è marcata con timestamp [m:ss]. Cita quello pertinente tra parentesi quadre accanto a ogni punto, copiandolo esattamente come appare.',
++  es: 'La transcripción está marcada con marcas de tiempo [m:ss]. Cita la correspondiente entre corchetes junto a cada punto, copiándola exactamente como aparece.',
++  fr: 'La transcription est marquée avec des horodatages [m:ss]. Cite celui qui convient entre crochets à côté de chaque point, copié exactement tel quel.',
++  de: 'Das Transkript ist mit [m:ss]-Zeitstempeln versehen. Nenne den passenden in eckigen Klammern neben jedem Punkt, exakt so kopiert, wie er dasteht.',
++  pt: 'A transcrição está marcada com carimbos de tempo [m:ss]. Cite o relevante entre colchetes ao lado de cada ponto, copiado exatamente como aparece.',
++};
++
++export function timestampNote(lang) {
++  return TIMESTAMP_NOTES[lang] || TIMESTAMP_NOTES.en;
++}
++
+ // ── Providers & Models ─────────────────────────────────────────────────────────
+ // HOW TO ADD A PROVIDER:
+ //   1. Add a new key below with the required fields.
+
+commit 9fe9b5b33b51af998afee485506e221edc30f030
+Author: Roberto <robertoreale2006@gmail.com>
+Date:   Tue Jul 28 14:30:56 2026 +0200
+
+    web_extension v10.19.0: honest web-mode status, composer-aware splitting, inline merge
+    
+    Web mode used to announce "Sent" the instant the chat tab opened, and split long
+    transcripts without regard for the composer's own limit. Both hid real losses.
+    
+    - Paste verdict: the content script now reports what actually landed, and the
+      status stays "Sending to ..." until it does. Failures and half-finished
+      sequences report the part reached and raise a desktop notification, since the
+      queue row is usually gone by then. Combined runs update every row at once.
+    - Composer cap: Gemini keeps only the first 32 000 chars of a message and drops
+      the rest silently (measured). The part count is now raised until every message
+      fits, up to maxAutoParts (20); OpenAI and Claude have no verified cap and are
+      left alone. Leftover overflow is reported instead of ignored.
+    - Inline merge: the merge message now carries the partial answers read back from
+      the page rather than trusting the chat to recall its own older turns (a
+      four-part video merged only the last two). If they cannot be read, the status
+      says the merge relied on the chat's memory.
+    - Large pastes converted into attachments by Claude/ChatGPT are handled, with the
+      instruction re-typed so it is not buried inside the file.
+    - Add dev tooling: npm test suite and build-zip script; ignore
+      web_extension/dist/.
+
+diff --git a/web_extension/modules/config.js b/web_extension/modules/config.js
+index c09c23d..e1c921e 100644
+--- a/web_extension/modules/config.js
++++ b/web_extension/modules/config.js
+@@ -56,10 +56,43 @@ export const CONFIG = {
+   // videos long enough that one request would truncate or lose detail.
+   chunking: {
+     maxParts:      10,     // upper bound for the UI / sanitizer
++    // Ceiling for the AUTOMATIC raise only (web mode, composer cap). It is
++    // deliberately higher than `maxParts`: the two limits exist for opposite
++    // reasons. `maxParts` caps what the user may *ask* for, to stop them paying
++    // for pointless extra requests. This one caps a raise the user did not ask
++    // for, whose whole purpose is to keep the video from being silently cut —
++    // holding it at 10 meant a video over ~5 h lost its tail no matter what.
++    // The cost is run length (each part waits for a full reply), which is why
++    // it is not unbounded; past this the overflow warning takes over.
++    maxAutoParts:  20,
+     defaultParts:  1,      // 1 = disabled
+-    // The only case where the requested number is not honoured: splitting a
+-    // 3-minute video into 8 pieces would just be 8 pointless requests.
++    // The only case where the requested number is not honoured downwards:
++    // splitting a 3-minute video into 8 pieces would just be 8 pointless
++    // requests.
+     minPartChars:  2000
++  },
++
++  // Web mode types each message into the provider's own composer, which has its
++  // own hard limit — far below the model's context. Gemini silently keeps the
++  // first 32 000 characters and drops the rest, so a "2 parts" split of a long
++  // video lost ~40% of it without a word anywhere. A value here raises the
++  // number of parts until every message fits; null means "no known limit, do
++  // not split on this account".
++  // Only measure-backed numbers belong here: a made-up cap costs the user extra
++  // round-trips for nothing.
++  // NOTE ON `null`: the lookup is `[provider] ?? default`, so an explicit `null`
++  // here falls through to `default`. The entries below are documentation of what
++  // was measured — if `default` ever becomes a number, revisit them.
++  maxWebMessageChars: {
++    // Measured 2026-07-27 by pasting 300 000 chars of fixed-width numbered lines
++    // into the live composer and reading the DOM back (nothing submitted).
++    gemini:    32000,   // truncates at EXACTLY 32 000 — cut mid-word at line 543/5085
++    openai:    null,    // no cap: 700 000 chars pasted back intact, all 11 865 lines
++    anthropic: null,    // no cap: a real Ctrl+V of 300 000 chars is converted into a
++                        // "PASTED" attachment instead of being truncated, and the
++                        // model reads it whole. The extension inserts text via
++                        // execCommand rather than pasting, so it stays plain text.
++    default:   null
+   }
+ };
+ 
+
+commit 032b6e3274e7718040893a5defac2298a2d3a5b3
+Author: Roberto <robertoreale2006@gmail.com>
+Date:   Mon Jul 27 02:14:33 2026 +0200
+
+    web_extension v10.15.1: move transcript splitting into the options bar
+    
+    The split was only reachable from Advanced Settings, as a number of parts
+    plus a "only if longer than N k characters" threshold — so picking 3 parts
+    could silently produce 1, which made the whole feature hard to understand.
+    
+    - The parts count is now a ✂️ dropdown in the options bar, next to the other
+      per-run chips, and 🧩 Merge parts is a chip that appears as soon as more
+      than one part is selected. Both are hidden in Transcript mode.
+    - Each video's ✎ panel gets its own ✂️ Split selector, defaulting to
+      "🔗 Global (n)" and overriding the run-wide value for that video only;
+      ↺ reset clears it with the other per-video overrides.
+    - The threshold is gone: the chosen number is honoured as-is. The only
+      adjustment left is downwards, when the transcript cannot fill that many
+      parts (under ~2000 chars each), so a 3-minute video is never split into 8
+      pointless requests. Max parts is now 10, matching the dropdown.
+    
+    processJob builds one jobSettings object so the per-video prompt, language
+    and split all resolve in the same place; the chunk prompts now follow a
+    per-video language override too.
+
+diff --git a/web_extension/modules/config.js b/web_extension/modules/config.js
+index 4379878..c09c23d 100644
+--- a/web_extension/modules/config.js
++++ b/web_extension/modules/config.js
+@@ -51,13 +51,15 @@ export const CONFIG = {
+     default:    200000
+   },
+ 
+-  // Optional manual splitting of a long transcript into several sequential API
+-  // calls. Off by default (parts = 1): it multiplies cost and latency, and only
+-  // pays off on videos long enough that one call would truncate or lose detail.
++  // Optional splitting of a transcript into several sequential requests. Off by
++  // default (parts = 1): it multiplies cost and latency, and only pays off on
++  // videos long enough that one request would truncate or lose detail.
+   chunking: {
+-    maxParts:         20,      // upper bound for the UI / sanitizer
+-    defaultParts:     1,       // 1 = disabled
+-    defaultMinChars:  100000   // don't split anything shorter than this
++    maxParts:      10,     // upper bound for the UI / sanitizer
++    defaultParts:  1,      // 1 = disabled
++    // The only case where the requested number is not honoured: splitting a
++    // 3-minute video into 8 pieces would just be 8 pointless requests.
++    minPartChars:  2000
+   }
+ };
+ 
+
+commit 988dad017b77abaf255996ccdc750fc5677e3d4d
+Author: Roberto <robertoreale2006@gmail.com>
+Date:   Mon Jul 27 01:32:06 2026 +0200
+
+    web_extension v10.15.0: split long transcripts into N user-chosen parts
+    
+    A single request over a very long video either truncates the transcript to
+    the model's context or thins out towards the end. Advanced Settings now take
+    a number of parts (1 = off, max 20) plus a threshold below which the split is
+    skipped, so short videos still cost one call.
+    
+    The transcript is cut at line/sentence boundaries and each slice is sent with
+    a note, in the transcript language, saying it is part i of n of one video.
+    
+    - API mode: one call per part, partial summaries joined under "Part i/n"
+      headings. The loop lives in background.js rather than inside callLLM so each
+      part gets its own rate-limit retries and cancellation check — a 429 on part
+      3 no longer re-sends and re-bills parts 1 and 2.
+    - Web mode: the parts are pasted one after another into the SAME conversation,
+      waiting for each answer to finish (the provider's stop-generating button is
+      the signal) before sending the next. Requires auto-submit; without it only
+      part 1 is pasted and the status line says so. Each part is also saved to its
+      own _partNofM.txt when "Save .txt" is on.
+    - Optional final merge pass fuses the parts into one summary: an extra message
+      in web mode, an extra call in API mode. If that call fails the partials are
+      kept instead of losing the whole run.
+    
+    The pending web payload carries a `parts` array (`text` retained for the
+    single-message case), and updateJobStatus now accepts several job ids so the
+    combined mode reports one shared progress line.
+    
+    Also: drop an unused getPreset import in popup-settings.js.
+
+diff --git a/web_extension/modules/config.js b/web_extension/modules/config.js
+index b900673..4379878 100644
+--- a/web_extension/modules/config.js
++++ b/web_extension/modules/config.js
+@@ -49,9 +49,68 @@ export const CONFIG = {
+     openrouter: 300000,   // unknown model — conservative
+     custom:     200000,   // typically a small local model
+     default:    200000
++  },
++
++  // Optional manual splitting of a long transcript into several sequential API
++  // calls. Off by default (parts = 1): it multiplies cost and latency, and only
++  // pays off on videos long enough that one call would truncate or lose detail.
++  chunking: {
++    maxParts:         20,      // upper bound for the UI / sanitizer
++    defaultParts:     1,       // 1 = disabled
++    defaultMinChars:  100000   // don't split anything shorter than this
++  }
++};
++
++// Wording injected around each chunk when a transcript is split. Keyed like
++// PROMPTS so the partial summaries stay in the user's language; falls back to
++// English for any language without an entry.
++// `instruction` rides along with each chunk; `mergeChat` is the extra message
++// sent to a web chat once every part has been posted (the conversation itself
++// holds the partial summaries); `mergeApi` heads the final API call, which is
++// followed by the partial summaries as text.
++export const CHUNK_NOTES = {
++  en: {
++    part: 'Part',
++    instruction: (i, n) => `This is part ${i} of ${n} of the transcript of ONE single video. Summarize only this part, following the instructions above. Do not write an introduction or a conclusion about the whole video — the parts will be joined together afterwards.`,
++    mergeChat: (n) => `You have now seen all ${n} parts of the video. Write a SINGLE unified summary of the whole video, merging the ${n} partial summaries above: remove repetitions, keep every distinct point, and follow the formatting requested at the start. Output only the final summary.`,
++    mergeApi: (n) => `Below are ${n} partial summaries of consecutive parts of ONE single video. Merge them into a SINGLE unified summary of the whole video: remove repetitions, keep every distinct point, and follow the formatting requested above. Output only the final summary.`
++  },
++  it: {
++    part: 'Parte',
++    instruction: (i, n) => `Questa è la parte ${i} di ${n} della trascrizione di UN SOLO video. Riassumi solo questa parte, seguendo le istruzioni sopra. Non scrivere introduzioni o conclusioni sull'intero video — le parti verranno unite successivamente.`,
++    mergeChat: (n) => `Ora hai visto tutte le ${n} parti del video. Scrivi UN UNICO riassunto complessivo dell'intero video, unendo i ${n} riassunti parziali qui sopra: elimina le ripetizioni, conserva ogni punto distinto e rispetta il formato richiesto all'inizio. Restituisci solo il riassunto finale.`,
++    mergeApi: (n) => `Qui sotto trovi ${n} riassunti parziali di parti consecutive di UN SOLO video. Uniscili in UN UNICO riassunto complessivo dell'intero video: elimina le ripetizioni, conserva ogni punto distinto e rispetta il formato richiesto sopra. Restituisci solo il riassunto finale.`
++  },
++  es: {
++    part: 'Parte',
++    instruction: (i, n) => `Esta es la parte ${i} de ${n} de la transcripción de UN SOLO video. Resume únicamente esta parte, siguiendo las instrucciones anteriores. No escribas una introducción ni una conclusión sobre el video completo — las partes se unirán después.`,
++    mergeChat: (n) => `Ya has visto las ${n} partes del video. Escribe UN ÚNICO resumen unificado del video completo, fusionando los ${n} resúmenes parciales anteriores: elimina las repeticiones, conserva todos los puntos distintos y respeta el formato pedido al principio. Devuelve solo el resumen final.`,
++    mergeApi: (n) => `A continuación hay ${n} resúmenes parciales de partes consecutivas de UN SOLO video. Fusiónalos en UN ÚNICO resumen del video completo: elimina las repeticiones, conserva todos los puntos distintos y respeta el formato pedido arriba. Devuelve solo el resumen final.`
++  },
++  fr: {
++    part: 'Partie',
++    instruction: (i, n) => `Ceci est la partie ${i} sur ${n} de la transcription d'UNE SEULE vidéo. Résume uniquement cette partie, en suivant les instructions ci-dessus. N'écris ni introduction ni conclusion sur la vidéo entière — les parties seront assemblées ensuite.`,
++    mergeChat: (n) => `Tu as maintenant vu les ${n} parties de la vidéo. Rédige UN SEUL résumé unifié de la vidéo entière, en fusionnant les ${n} résumés partiels ci-dessus : supprime les répétitions, conserve chaque point distinct et respecte le format demandé au début. Ne renvoie que le résumé final.`,
++    mergeApi: (n) => `Voici ${n} résumés partiels de parties consécutives d'UNE SEULE vidéo. Fusionne-les en UN SEUL résumé de la vidéo entière : supprime les répétitions, conserve chaque point distinct et respecte le format demandé ci-dessus. Ne renvoie que le résumé final.`
++  },
++  de: {
++    part: 'Teil',
++    instruction: (i, n) => `Dies ist Teil ${i} von ${n} des Transkripts EINES einzigen Videos. Fasse nur diesen Teil zusammen und folge dabei den obigen Anweisungen. Schreibe keine Einleitung und kein Fazit über das gesamte Video — die Teile werden anschließend zusammengefügt.`,
++    mergeChat: (n) => `Du hast jetzt alle ${n} Teile des Videos gesehen. Schreibe EINE einzige zusammenhängende Zusammenfassung des gesamten Videos, indem du die ${n} Teilzusammenfassungen oben zusammenführst: entferne Wiederholungen, behalte jeden eigenständigen Punkt und halte dich an das anfangs geforderte Format. Gib nur die finale Zusammenfassung aus.`,
++    mergeApi: (n) => `Unten stehen ${n} Teilzusammenfassungen aufeinanderfolgender Abschnitte EINES einzigen Videos. Führe sie zu EINER einzigen Zusammenfassung des gesamten Videos zusammen: entferne Wiederholungen, behalte jeden eigenständigen Punkt und halte dich an das oben geforderte Format. Gib nur die finale Zusammenfassung aus.`
++  },
++  pt: {
++    part: 'Parte',
++    instruction: (i, n) => `Esta é a parte ${i} de ${n} da transcrição de UM único vídeo. Resume apenas esta parte, seguindo as instruções acima. Não escrevas uma introdução nem uma conclusão sobre o vídeo inteiro — as partes serão unidas depois.`,
++    mergeChat: (n) => `Já viste as ${n} partes do vídeo. Escreve UM ÚNICO resumo unificado do vídeo inteiro, juntando os ${n} resumos parciais acima: elimina repetições, mantém todos os pontos distintos e respeita o formato pedido no início. Devolve apenas o resumo final.`,
++    mergeApi: (n) => `Abaixo estão ${n} resumos parciais de partes consecutivas de UM único vídeo. Junta-os num ÚNICO resumo do vídeo inteiro: elimina repetições, mantém todos os pontos distintos e respeita o formato pedido acima. Devolve apenas o resumo final.`
+   }
+ };
+ 
++export function chunkNotes(lang) {
++  return CHUNK_NOTES[lang] || CHUNK_NOTES.en;
++}
++
+ // ── Providers & Models ─────────────────────────────────────────────────────────
+ // HOW TO ADD A PROVIDER:
+ //   1. Add a new key below with the required fields.
+
+commit a6054302b43d8ec8971041ac759f85d8cf97c28e
+Author: Roberto <robertoreale2006@gmail.com>
+Date:   Tue Jul 21 03:45:40 2026 +0200
+
+    web_extension v10.14.0: validate transcript completeness, fix job-queue data loss
+    
+    Transcripts
+    - Verify caption coverage against videoDetails.lengthSeconds (80% floor) and
+      fall through to the next strategy on a partial result; surface any residual
+      shortfall in the saved file and the job status instead of silently shipping
+      a truncated transcript.
+    - New modules/transcript-parse.js: single parser for json3, legacy XML and
+      srv3. The srv3 fallback used <text> tags and could never match, so there
+      were effectively two format attempts, not three.
+    - Sanity-check the untimed get_transcript response against the video duration
+      so a truncated one no longer short-circuits the Android and tab strategies.
+    - pickTrack() scores tracks and prefers a human-written track over ASR; the
+      language actually used is reported when it differs from the request.
+    - Whitelist noise cues ([Music], [Applause], ...) instead of dropping every
+      bracketed line, collapse rolling ASR duplicates, decode double-escaped
+      entities.
+    - Replace the flat 120k-char cap with per-provider limits; when the transcript
+      is still truncated, say so in the .md rather than only inside the prompt.
+    
+    Batch queue
+    - Resume by job id instead of array index. The popup rewrites the jobs array
+      between videos, and every removal shifted the indices down, silently
+      skipping a video.
+    - Monotonic collision-checked job ids; Date.now() + i handed out overlapping
+      blocks on playlist import.
+    - Serialize job status writes; drop faded-out jobs only in finalizeBatch.
+    - Claim the runner synchronously so the alarm and its setTimeout backstop
+      cannot both start it; re-arm keepAlive on resume; stop retrying videos that
+      genuinely have no captions on every run.
+    
+    Downloads
+    - New modules/downloads.js: build blob URLs in the offscreen document instead
+      of data: URLs, which inflate non-ASCII text ~3x and failed past the URL
+      length cap while the job still reported success. Errors now propagate.
+    - safeFilename(): trim after slicing, handle reserved names, fall back to the
+      video id rather than emitting ".md".
+    
+    Auto-paste
+    - New paste_common.js shared by the three provider scripts. The payload is
+      claimed with a token and a 5-minute TTL and only deleted once the text is
+      verified in the editor: it was previously removed up-front (losing the
+      transcript on a slow or logged-out page) and otherwise kept forever, so an
+      unrelated visit days later got a surprise paste.
+    
+    API
+    - Anthropic: budget_tokens is rejected with HTTP 400 on current models; use
+      adaptive thinking on 4.6+ and keep the old form only for legacy models.
+      Refresh the model list (retired ids were still selectable).
+    - Defensive response parsing for Anthropic, OpenAI-compatible and Gemini;
+      explicit message when Gemini burns the output budget on thinking tokens.
+    - Move the Gemini key out of the query string into x-goog-api-key.
+    - optional_host_permissions plus a runtime request for custom endpoints.
+    
+    Misc
+    - Don't drop a tab extraction when the 55s load watchdog fires mid-script;
+      cap it at 90s instead of leaving the batch hanging.
+    - Playlist: raise the cap to 5000 and report it; parse "1.2K videos".
+    - cancellableSleep also honours a stop written to storage; findInObject no
+      longer discards false/0.
+
+diff --git a/web_extension/modules/config.js b/web_extension/modules/config.js
+index b01221a..b900673 100644
+--- a/web_extension/modules/config.js
++++ b/web_extension/modules/config.js
+@@ -25,6 +25,30 @@ export const CONFIG = {
+     anthropic:  'https://claude.ai/new',
+     openai:     'https://chatgpt.com/',
+     gemini:     'https://gemini.google.com/app',
++  },
++
++  transcript: {
++    // A caption track is accepted only if its last cue lands within this fraction
++    // of the video's real duration. YouTube sometimes serves a partial timedtext
++    // body (expired URL / partial PO-token enforcement); without this check a
++    // half-transcript would be summarized as if it were the whole video.
++    minCoverage: 0.80,
++    // Cue texts that are pure sound annotations and carry no speech. Only these
++    // are dropped — a blanket /^\[.*\]$/ filter also removed legitimate lines
++    // (stage directions, speaker labels) present in many manual caption tracks.
++    noiseCues: /^\[(music|musica|música|musique|musik|applause|applausi|aplausos|applaudissements|laughter|risate|risas|rires|silence|silenzio|no audio|sound effects?|[^\]]*\bmusic\b[^\]]*)\]$/i
++  },
++
++  // Per-provider transcript budget, in characters. The old flat 120k cap silently
++  // dropped the tail of any video longer than ~2 h even on 200k+ token models.
++  // Values leave generous room for the prompt and the response.
++  maxTranscriptChars: {
++    anthropic:  500000,   // 200k-token context
++    openai:     350000,   // 128k-token context
++    gemini:     900000,   // 1M-token context
++    openrouter: 300000,   // unknown model — conservative
++    custom:     200000,   // typically a small local model
++    default:    200000
+   }
+ };
+ 
+@@ -43,12 +67,13 @@ export const PROVIDERS = {
+   anthropic: {
+     name: 'Anthropic Claude',
+     models: [
+-      { value: 'claude-sonnet-4-6',          label: 'claude-sonnet-4-6 (Recommended)' },
+-      { value: 'claude-opus-4-7',             label: 'claude-opus-4-7 (Most capable)' },
+-      { value: 'claude-3-7-sonnet-20250219',  label: 'claude-3-7-sonnet' },
+-      { value: 'claude-3-5-sonnet-latest',    label: 'claude-3-5-sonnet' },
++      { value: 'claude-opus-4-8',   label: 'claude-opus-4-8 (Recommended)' },
++      { value: 'claude-sonnet-5',   label: 'claude-sonnet-5 (Fast + capable)' },
++      { value: 'claude-haiku-4-5',  label: 'claude-haiku-4-5 (Cheapest)' },
++      { value: 'claude-opus-4-7',   label: 'claude-opus-4-7' },
++      { value: 'claude-sonnet-4-6', label: 'claude-sonnet-4-6' },
+     ],
+-    defaultModel:      'claude-sonnet-4-6',
++    defaultModel:      'claude-opus-4-8',
+     supportsThinking:  true,
+     hasWebUI:          true,
+     apiKeyLabel:       'API Key',
+
+commit d1076654f589efcb869ffc53ab959663d280425b
+Author: Roberto <robertoreale2006@gmail.com>
+Date:   Mon Jul 20 21:44:48 2026 +0200
+
+    web_extension v10.12.1: add iOS client fallback to transcript Strategy 2
+    
+    Strategy 2 (InnerTube player API) now tries ANDROID then IOS. Verified
+    empirically that both still return caption tracks and fetchable caption
+    bodies without a PO token, while MWEB/TVHTML5/WEB return UNPLAYABLE/
+    LOGIN_REQUIRED cookieless — so only IOS was added (independent iOSGuard
+    attestation path gives real redundancy as YouTube tightens ANDROID).
+
+diff --git a/web_extension/modules/config.js b/web_extension/modules/config.js
+index cb350a5..b01221a 100644
+--- a/web_extension/modules/config.js
++++ b/web_extension/modules/config.js
+@@ -10,6 +10,11 @@ export const CONFIG = {
+     // Known working client versions
+     androidClientVersion: '20.10.38',
+     androidSdkVersion: 34,
++    // IOS is a second, independent attestation path (iOSGuard vs DroidGuard):
++    // when YouTube tightens PO-token enforcement on ANDROID, IOS often still
++    // returns caption tracks. Verified working without a PO token.
++    iosClientVersion: '20.10.4',
++    iosDeviceModel: 'iPhone16,2',
+     webClientVersion: '2.20240530.02.00'
+   },
+ 
+
+commit b137ee2caee86835adccd61b9dcb495e94455c06
+Author: Roberto <robertoreale2006@gmail.com>
+Date:   Sat Jun 13 02:38:49 2026 +0200
+
+    perf(web_extension): streamline transcript extraction — 3 strategies, faster fallback
+    
+    - Reorder strategies: page scraping (with browser cookies) now runs first
+      as it is the most reliable path; Android InnerTube is demoted to second
+    - Remove fetchViaTimedText (Strategy 3): the /api/timedtext endpoint is
+      deprecated and returns empty body for most videos from service-worker context
+    - Remove IOS and TVHTML5 InnerTube clients: both are blocked by YouTube's
+      PO Token requirement, same as ANDROID, so they only added latency
+    - Reduce tab-fallback post-load delay from 3000 ms to 500 ms: ytInitialPlayerResponse
+      is available in the initial HTML, no dynamic wait needed
+    - Clean up unused iOS/TV version constants from config.js
+    - Bump version to 10.10.3; update README transcript extraction section
+
+diff --git a/web_extension/modules/config.js b/web_extension/modules/config.js
+index b29b244..cb350a5 100644
+--- a/web_extension/modules/config.js
++++ b/web_extension/modules/config.js
+@@ -10,11 +10,7 @@ export const CONFIG = {
+     // Known working client versions
+     androidClientVersion: '20.10.38',
+     androidSdkVersion: 34,
+-    webClientVersion: '2.20240530.02.00',
+-    iosClientVersion: '19.45.4',
+-    iosDeviceModel: 'iPhone16,2',
+-    iosOsVersion: '17.5.1.21F90',
+-    tvClientVersion: '7.20231021.0.0'
++    webClientVersion: '2.20240530.02.00'
+   },
+ 
+   // ── Provider Web URLs ──────────────────────────────────────────────────────
+
+commit 34fa7d5d8b08f9edf3dd25df766883e23ddebee2
+Author: Roberto <robertoreale2006@gmail.com>
+Date:   Sun May 31 18:13:27 2026 +0200
+
+    feat: initialize browser extension manifest and configuration module
+
+diff --git a/web_extension/modules/config.js b/web_extension/modules/config.js
+index f171e10..b29b244 100644
+--- a/web_extension/modules/config.js
++++ b/web_extension/modules/config.js
+@@ -157,7 +157,7 @@ export const PROMPTS = {
+       normal: "Genera un resumen completo y detallado del siguiente video. Debes considerar el video completo. Asegúrate de no omitir ningún punto, explicación o detalle importante.",
+       long:   "Genera un resumen detallado y estructurado del siguiente video. Cubre cada sección, argumento, ejemplo y detalle mencionado. Organiza el resultado con secciones claras. Incluye transiciones entre temas donde sea relevante. No omitas nada."
+     }
+-  }
++  },
+   // ── French ───────────────────────────────────────────────────────────────
+   fr: {
+     md: {
+
+commit 748090951b7b5a90bb9131b534e13abe8a8b7552
+Author: Roberto <robertoreale2006@gmail.com>
+Date:   Sun May 31 18:12:37 2026 +0200
+
+    Expanded language support:
+    
+    I updated popup.html to include all drop-down menus with the same full set of languages ​​(French, German, Portuguese, Chinese, Japanese, Korean, Arabic, Russian, Dutch, Polish, Turkish, and Hindi) as the web app.
+    I modified modules/config.js to include the relevant localized prompt presets (for the main European languages) or to ensure the system falls back to the correct language, maintaining the same behavior as the web app.
+    Fixed auto-submit issue:
+    
+    The frameworks (React/Angular) that manage the ChatGPT, Claude, and Gemini UI often take a few moments longer to re-enable the "Submit" button or correctly record input after a simulated paste.
+    I updated the chatgpt_paste.js, claude_paste.js, and gemini_paste.js files to introduce a retry mechanism. The extension will now make up to 6 attempts (with a half-second pause between each) waiting for the LLM interface to be ready before forcing a click or sending an Enter key press.
+
+diff --git a/web_extension/modules/config.js b/web_extension/modules/config.js
+index 81413fe..f171e10 100644
+--- a/web_extension/modules/config.js
++++ b/web_extension/modules/config.js
+@@ -158,6 +158,45 @@ export const PROMPTS = {
+       long:   "Genera un resumen detallado y estructurado del siguiente video. Cubre cada sección, argumento, ejemplo y detalle mencionado. Organiza el resultado con secciones claras. Incluye transiciones entre temas donde sea relevante. No omitas nada."
+     }
+   }
++  // ── French ───────────────────────────────────────────────────────────────
++  fr: {
++    md: {
++      short:  "Résume la vidéo suivante dans un fichier markdown (.md). Concentre-toi uniquement sur les points clés.",
++      normal: "Génère un résumé complet et détaillé de la vidéo suivante dans un fichier markdown (.md). Considère l'intégralité de la vidéo. Assure-toi de ne manquer aucun point, explication ou détail important.",
++      long:   "Génère un résumé approfondi et structuré de la vidéo suivante dans un fichier markdown (.md). Couvre chaque section, argument, exemple et détail mentionné. Organise le résultat avec des titres et sous-titres clairs. Inclus les transitions entre sujets lorsque c'est pertinent. N'omets rien."
++    },
++    chat: {
++      short:  "Résume la vidéo suivante. Concentre-toi uniquement sur les points clés.",
++      normal: "Génère un résumé complet et détaillé de la vidéo suivante. Considère l'intégralité de la vidéo. Assure-toi de ne manquer aucun point, explication ou détail important.",
++      long:   "Génère un résumé approfondi et structuré de la vidéo suivante. Couvre chaque section, argument, exemple et détail mentionné. Organise le résultat avec des sections claires. Inclus les transitions entre sujets lorsque c'est pertinent. N'omets rien."
++    }
++  },
++  // ── German ────────────────────────────────────────────────────────────────
++  de: {
++    md: {
++      short:  "Fasse das folgende Video als Markdown-Datei (.md) zusammen. Konzentriere dich nur auf die wichtigsten Punkte.",
++      normal: "Erstelle eine vollständige und detaillierte Zusammenfassung des folgenden Videos als Markdown-Datei (.md). Berücksichtige das gesamte Video. Stelle sicher, dass du keine wichtigen Punkte, Erklärungen oder Details auslässt.",
++      long:   "Erstelle eine ausführliche, strukturierte Zusammenfassung des folgenden Videos als Markdown-Datei (.md). Erfasse jeden Abschnitt, jedes Argument, Beispiel und Detail. Organisiere die Ausgabe mit klaren Überschriften und Unterüberschriften. Füge Themenübergänge ein, wo relevant. Lasse nichts aus."
++    },
++    chat: {
++      short:  "Fasse das folgende Video zusammen. Konzentriere dich nur auf die wichtigsten Punkte.",
++      normal: "Erstelle eine vollständige und detaillierte Zusammenfassung des folgenden Videos. Berücksichtige das gesamte Video. Stelle sicher, dass du keine wichtigen Punkte, Erklärungen oder Details auslässt.",
++      long:   "Erstelle eine ausführliche, strukturierte Zusammenfassung des folgenden Videos. Erfasse jeden Abschnitt, jedes Argument, Beispiel und Detail. Organisiere die Ausgabe mit klaren Abschnitten. Füge Themenübergänge ein, wo relevant. Lasse nichts aus."
++    }
++  },
++  // ── Portuguese ────────────────────────────────────────────────────────────
++  pt: {
++    md: {
++      short:  "Resume o seguinte vídeo num ficheiro markdown (.md). Concentra-te apenas nos pontos principais.",
++      normal: "Gera um resumo completo e detalhado do seguinte vídeo num ficheiro markdown (.md). Considera o vídeo na íntegra. Certifica-te de que não omites nenhum ponto, explicação ou detalhe importante.",
++      long:   "Gera um resumo aprofundado e estruturado do seguinte vídeo num ficheiro markdown (.md). Aborda cada secção, argumento, exemplo e detalhe mencionado. Organiza o resultado com títulos e subtítulos claros. Inclui as transições entre temas onde relevante. Não omitas nada."
++    },
++    chat: {
++      short:  "Resume o seguinte vídeo. Concentra-te apenas nos pontos principais.",
++      normal: "Gera um resumo completo e detalhado do seguinte vídeo. Considera o vídeo na íntegra. Certifica-te de que não omites nenhum ponto, explicação ou detalhe importante.",
++      long:   "Gera um resumo aprofundado e estruturado do seguinte vídeo. Aborda cada secção, argumento, exemplo e detalhe mencionado. Organiza o resultado com secções claras. Inclui as transições entre temas onde relevante. Não omitas nada."
++    }
++  }
+   // ── Add new languages below following the same structure ──────────────────
+ };
+ 
+
+commit 77cea6aa084a62c1bd93728c8e63acb2438ea262
+Author: Roberto <robertoreale2006@gmail.com>
+Date:   Sun May 31 15:25:56 2026 +0200
+
+    Custom prompt protected from overwrites: I've introduced an isPreset helper in the config.js file. Now, in popup.js and popup-render.js, before updating the UI prompt due to a change in language, format (md/chat), or length, the code checks whether the current prompt is one of the default ones (isPreset()). If the user has written a completely custom prompt, the extension will keep it intact.
+    Correct language in submission fallback: In popup.js, the startBatch() function now correctly uses transcriptLang, globalFmt, and globalLen to calculate the fallback preset if the user submits the request without a text prompt, instead of forcing English in all circumstances.
+    Improved job delay in Chrome: In the background.js file, I've added a fallback with setTimeout built in using chrome.alarms.create. Chrome in Manifest V3 often rounds up alarms to at least 1 minute in production, delaying chat tabs by 60 seconds instead of 30. Now, if the webDelay is less than 60 seconds (60000ms), the extension also uses setTimeout in parallel which allows the tab to open on time, and the isRunning flag safely avoids duplicate executions.
+
+diff --git a/web_extension/modules/config.js b/web_extension/modules/config.js
+index fa2e151..81413fe 100644
+--- a/web_extension/modules/config.js
++++ b/web_extension/modules/config.js
+@@ -167,3 +167,16 @@ export function getPreset(lang, fmt, len = 'normal') {
+   const fmtKey = isMD ? 'md' : 'chat';
+   return PROMPTS[langKey][fmtKey][len] || PROMPTS[langKey][fmtKey]['normal'];
+ }
++
++export function isPreset(text) {
++  if (!text) return false;
++  const trimmed = text.trim();
++  for (const lang of Object.values(PROMPTS)) {
++    for (const fmt of Object.values(lang)) {
++      for (const preset of Object.values(fmt)) {
++        if (preset.trim() === trimmed) return true;
++      }
++    }
++  }
++  return false;
++}
+
+commit 87cc98fad116bf8641d1ceeef227319fc5b1b30c
+Author: Roberto <robertoreale2006@gmail.com>
+Date:   Sun May 24 20:07:23 2026 +0200
+
+    general fix
+
+diff --git a/web_extension/modules/config.js b/web_extension/modules/config.js
+index 251e6ed..fa2e151 100644
+--- a/web_extension/modules/config.js
++++ b/web_extension/modules/config.js
+@@ -1,6 +1,8 @@
+-// ── Config ────────────────────────────────────────────────────────────
+-// Centralized configuration for the YT Transcript Summarizer
++// ── Config ─────────────────────────────────────────────────────────────────────
++// Centralized configuration for the YT Transcript Summarizer extension.
+ 
++// ── YouTube InnerTube config ───────────────────────────────────────────────────
++// Update these values when YouTube changes its internal API versions.
+ export const CONFIG = {
+   youtube: {
+     // InnerTube public API key
+@@ -14,8 +16,10 @@ export const CONFIG = {
+     iosOsVersion: '17.5.1.21F90',
+     tvClientVersion: '7.20231021.0.0'
+   },
+-  
+-  // Provider Web URLs
++
++  // ── Provider Web URLs ──────────────────────────────────────────────────────
++  // Used when the user wants to open the chat in a new tab instead of via API.
++  // Add a new key here if you add a provider with hasWebUI: true in PROVIDERS.
+   providerWebUrls: {
+     anthropic:  'https://claude.ai/new',
+     openai:     'https://chatgpt.com/',
+@@ -23,7 +27,17 @@ export const CONFIG = {
+   }
+ };
+ 
+-// ── Provider config ───────────────────────────────────────────────────────────
++// ── Providers & Models ─────────────────────────────────────────────────────────
++// HOW TO ADD A PROVIDER:
++//   1. Add a new key below with the required fields.
++//   2. If it has a web UI, add its URL to CONFIG.providerWebUrls above.
++//   3. If it needs a paste script, create <provider>_paste.js in the extension
++//      root and register it in manifest.json > content_scripts.
++//
++// HOW TO ADD/REMOVE A MODEL:
++//   - Edit the `models` array of the relevant provider.
++//   - Update `defaultModel` if the current default is removed.
++// ─────────────────────────────────────────────────────────────────────────────
+ export const PROVIDERS = {
+   anthropic: {
+     name: 'Anthropic Claude',
+@@ -93,44 +107,58 @@ export const PROVIDERS = {
+   },
+ };
+ 
+-// ── Prompts ───────────────────────────────────────────────────────────────────
++// ── Prompts ────────────────────────────────────────────────────────────────────
++// HOW TO ADD A LANGUAGE:
++//   1. Add a new top-level key using the ISO 639-1 code (e.g. "fr", "de", "pt").
++//   2. Copy the structure from an existing language block (md + chat, each with
++//      short / normal / long variants) and translate the prompt text.
++//   3. The UI will automatically pick up the new language — no other changes needed.
++//
++// HOW TO EDIT A PROMPT:
++//   - Find the language key (e.g. "en"), then the format ("md" or "chat"),
++//     then the length ("short", "normal", "long") and update the string.
++// ─────────────────────────────────────────────────────────────────────────────
+ export const PROMPTS = {
++  // ── English ────────────────────────────────────────────────────────────────
+   en: {
+     md: {
+-      short: "Summarize the following video as a markdown file (.md). Focus only on the key takeaways.",
++      short:  "Summarize the following video as a markdown file (.md). Focus only on the key takeaways.",
+       normal: "Generate a complete and detailed summary of the following video as a markdown file (.md). You must consider the entire video. Make sure you don't leave out any important points, explanations, or details.",
+-      long: "Generate an in-depth, structured summary of the following video as a markdown file (.md). Cover every section, argument, example, and detail mentioned. Organize the output with clear headings and subheadings. Include topic transitions where relevant. Do not omit anything."
++      long:   "Generate an in-depth, structured summary of the following video as a markdown file (.md). Cover every section, argument, example, and detail mentioned. Organize the output with clear headings and subheadings. Include topic transitions where relevant. Do not omit anything."
+     },
+     chat: {
+-      short: "Summarize the following video. Focus only on the key takeaways.",
++      short:  "Summarize the following video. Focus only on the key takeaways.",
+       normal: "Generate a complete and detailed summary of the following video. Consider the entire video. Make sure you don't leave out any important points, explanations, or details.",
+-      long: "Generate an in-depth, structured summary of the following video. Cover every section, argument, example, and detail mentioned. Organize the output with clear sections. Include topic transitions where relevant. Do not omit anything."
++      long:   "Generate an in-depth, structured summary of the following video. Cover every section, argument, example, and detail mentioned. Organize the output with clear sections. Include topic transitions where relevant. Do not omit anything."
+     }
+   },
++  // ── Italian ────────────────────────────────────────────────────────────────
+   it: {
+     md: {
+-      short: "Riassumi il seguente video in un file markdown (.md). Concentrati solo sui punti chiave.",
++      short:  "Riassumi il seguente video in un file markdown (.md). Concentrati solo sui punti chiave.",
+       normal: "Genera un riassunto completo e dettagliato del seguente video in un file markdown (.md). Devi considerare l'intero video. Assicurati di non tralasciare alcun punto, spiegazione o dettaglio importante.",
+-      long: "Genera un riassunto approfondito e strutturato del seguente video in un file markdown (.md). Tratta ogni sezione, argomento, esempio e dettaglio menzionato. Organizza l'output con titoli e sottotitoli chiari. Includi le transizioni tra argomenti dove rilevante. Non omettere nulla."
++      long:   "Genera un riassunto approfondito e strutturato del seguente video in un file markdown (.md). Tratta ogni sezione, argomento, esempio e dettaglio menzionato. Organizza l'output con titoli e sottotitoli chiari. Includi le transizioni tra argomenti dove rilevante. Non omettere nulla."
+     },
+     chat: {
+-      short: "Riassumi il seguente video. Concentrati solo sui punti chiave.",
++      short:  "Riassumi il seguente video. Concentrati solo sui punti chiave.",
+       normal: "Genera un riassunto completo e dettagliato del seguente video. Devi considerare l'intero video. Assicurati di non tralasciare alcun punto, spiegazione o dettaglio importante.",
+-      long: "Genera un riassunto approfondito e strutturato del seguente video. Tratta ogni sezione, argomento, esempio e dettaglio menzionato. Organizza l'output con sezioni chiare. Includi le transizioni tra argomenti dove rilevante. Non omettere nulla."
++      long:   "Genera un riassunto approfondito e strutturato del seguente video. Tratta ogni sezione, argomento, esempio e dettaglio menzionato. Organizza l'output con sezioni chiare. Includi le transizioni tra argomenti dove rilevante. Non omettere nulla."
+     }
+   },
++  // ── Spanish ────────────────────────────────────────────────────────────────
+   es: {
+     md: {
+-      short: "Resume el siguiente video en un archivo markdown (.md). Céntrate solo en los puntos clave.",
++      short:  "Resume el siguiente video en un archivo markdown (.md). Céntrate solo en los puntos clave.",
+       normal: "Genera un resumen completo y detallado del siguiente video en un archivo markdown (.md). Debes considerar el video completo. Asegúrate de no omitir ningún punto, explicación o detalle importante.",
+-      long: "Genera un resumen detallado y estructurado del siguiente video en un archivo markdown (.md). Cubre cada sección, argumento, ejemplo y detalle mencionado. Organiza el resultado con títulos y subtítulos claros. Incluye transiciones entre temas donde sea relevante. No omitas nada."
++      long:   "Genera un resumen detallado y estructurado del siguiente video en un archivo markdown (.md). Cubre cada sección, argumento, ejemplo y detalle mencionado. Organiza el resultado con títulos y subtítulos claros. Incluye transiciones entre temas donde sea relevante. No omitas nada."
+     },
+     chat: {
+-      short: "Resume el siguiente video. Céntrate solo en los puntos clave.",
++      short:  "Resume el siguiente video. Céntrate solo en los puntos clave.",
+       normal: "Genera un resumen completo y detallado del siguiente video. Debes considerar el video completo. Asegúrate de no omitir ningún punto, explicación o detalle importante.",
+-      long: "Genera un resumen detallado y estructurado del siguiente video. Cubre cada sección, argumento, ejemplo y detalle mencionado. Organiza el resultado con secciones claras. Incluye transiciones entre temas donde sea relevante. No omitas nada."
++      long:   "Genera un resumen detallado y estructurado del siguiente video. Cubre cada sección, argumento, ejemplo y detalle mencionado. Organiza el resultado con secciones claras. Incluye transiciones entre temas donde sea relevante. No omitas nada."
+     }
+   }
++  // ── Add new languages below following the same structure ──────────────────
+ };
+ 
+ export function getPreset(lang, fmt, len = 'normal') {
+
+commit 5a6c85005aa0401fb241b6b6882d0665aaccd064
+Author: Roberto <robertoreale2006@gmail.com>
+Date:   Sun May 24 20:00:02 2026 +0200
+
+    initialize full-stack YouTube transcript summarizer project with browser extension and web application
+
+diff --git a/web_extension/modules/config.js b/web_extension/modules/config.js
+new file mode 100644
+index 0000000..251e6ed
+--- /dev/null
++++ b/web_extension/modules/config.js
+@@ -0,0 +1,141 @@
++// ── Config ────────────────────────────────────────────────────────────
++// Centralized configuration for the YT Transcript Summarizer
++
++export const CONFIG = {
++  youtube: {
++    // InnerTube public API key
++    apiKey: 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
++    // Known working client versions
++    androidClientVersion: '20.10.38',
++    androidSdkVersion: 34,
++    webClientVersion: '2.20240530.02.00',
++    iosClientVersion: '19.45.4',
++    iosDeviceModel: 'iPhone16,2',
++    iosOsVersion: '17.5.1.21F90',
++    tvClientVersion: '7.20231021.0.0'
++  },
++  
++  // Provider Web URLs
++  providerWebUrls: {
++    anthropic:  'https://claude.ai/new',
++    openai:     'https://chatgpt.com/',
++    gemini:     'https://gemini.google.com/app',
++  }
++};
++
++// ── Provider config ───────────────────────────────────────────────────────────
++export const PROVIDERS = {
++  anthropic: {
++    name: 'Anthropic Claude',
++    models: [
++      { value: 'claude-sonnet-4-6',          label: 'claude-sonnet-4-6 (Recommended)' },
++      { value: 'claude-opus-4-7',             label: 'claude-opus-4-7 (Most capable)' },
++      { value: 'claude-3-7-sonnet-20250219',  label: 'claude-3-7-sonnet' },
++      { value: 'claude-3-5-sonnet-latest',    label: 'claude-3-5-sonnet' },
++    ],
++    defaultModel:      'claude-sonnet-4-6',
++    supportsThinking:  true,
++    hasWebUI:          true,
++    apiKeyLabel:       'API Key',
++    apiKeyPlaceholder: 'sk-ant-...',
++  },
++  openai: {
++    name: 'OpenAI',
++    models: [
++      { value: 'gpt-4o',       label: 'gpt-4o (Recommended)' },
++      { value: 'gpt-4o-mini',  label: 'gpt-4o-mini (Fast)' },
++      { value: 'o1',           label: 'o1 (Reasoning)' },
++      { value: 'o1-mini',      label: 'o1-mini' },
++      { value: 'gpt-4-turbo',  label: 'gpt-4-turbo' },
++    ],
++    defaultModel:      'gpt-4o',
++    supportsThinking:  false,
++    hasWebUI:          true,
++    apiKeyLabel:       'API Key',
++    apiKeyPlaceholder: 'sk-...',
++  },
++  gemini: {
++    name: 'Google Gemini',
++    models: [
++      { value: 'gemini-2.0-flash',  label: 'gemini-2.0-flash (Recommended)' },
++      { value: 'gemini-1.5-pro',    label: 'gemini-1.5-pro' },
++      { value: 'gemini-1.5-flash',  label: 'gemini-1.5-flash (Fast)' },
++    ],
++    defaultModel:      'gemini-2.0-flash',
++    supportsThinking:  false,
++    hasWebUI:          true,
++    apiKeyLabel:       'API Key (Google AI Studio)',
++    apiKeyPlaceholder: 'AIza...',
++  },
++  openrouter: {
++    name: 'OpenRouter',
++    models: [
++      { value: 'anthropic/claude-sonnet-4-6',          label: 'claude-sonnet-4-6' },
++      { value: 'openai/gpt-4o',                        label: 'gpt-4o' },
++      { value: 'google/gemini-2.0-flash-exp',          label: 'gemini-2.0-flash' },
++      { value: 'meta-llama/llama-3.3-70b-instruct',    label: 'llama-3.3-70b' },
++      { value: 'mistralai/mistral-large',              label: 'mistral-large' },
++    ],
++    defaultModel:      'anthropic/claude-sonnet-4-6',
++    supportsThinking:  false,
++    hasWebUI:          false,
++    apiKeyLabel:       'API Key',
++    apiKeyPlaceholder: 'sk-or-...',
++  },
++  custom: {
++    name: 'Custom (OpenAI-compatible)',
++    models:            [],
++    defaultModel:      '',
++    supportsThinking:  false,
++    hasWebUI:          false,
++    apiKeyLabel:       'API Key (optional)',
++    apiKeyPlaceholder: '...',
++  },
++};
++
++// ── Prompts ───────────────────────────────────────────────────────────────────
++export const PROMPTS = {
++  en: {
++    md: {
++      short: "Summarize the following video as a markdown file (.md). Focus only on the key takeaways.",
++      normal: "Generate a complete and detailed summary of the following video as a markdown file (.md). You must consider the entire video. Make sure you don't leave out any important points, explanations, or details.",
++      long: "Generate an in-depth, structured summary of the following video as a markdown file (.md). Cover every section, argument, example, and detail mentioned. Organize the output with clear headings and subheadings. Include topic transitions where relevant. Do not omit anything."
++    },
++    chat: {
++      short: "Summarize the following video. Focus only on the key takeaways.",
++      normal: "Generate a complete and detailed summary of the following video. Consider the entire video. Make sure you don't leave out any important points, explanations, or details.",
++      long: "Generate an in-depth, structured summary of the following video. Cover every section, argument, example, and detail mentioned. Organize the output with clear sections. Include topic transitions where relevant. Do not omit anything."
++    }
++  },
++  it: {
++    md: {
++      short: "Riassumi il seguente video in un file markdown (.md). Concentrati solo sui punti chiave.",
++      normal: "Genera un riassunto completo e dettagliato del seguente video in un file markdown (.md). Devi considerare l'intero video. Assicurati di non tralasciare alcun punto, spiegazione o dettaglio importante.",
++      long: "Genera un riassunto approfondito e strutturato del seguente video in un file markdown (.md). Tratta ogni sezione, argomento, esempio e dettaglio menzionato. Organizza l'output con titoli e sottotitoli chiari. Includi le transizioni tra argomenti dove rilevante. Non omettere nulla."
++    },
++    chat: {
++      short: "Riassumi il seguente video. Concentrati solo sui punti chiave.",
++      normal: "Genera un riassunto completo e dettagliato del seguente video. Devi considerare l'intero video. Assicurati di non tralasciare alcun punto, spiegazione o dettaglio importante.",
++      long: "Genera un riassunto approfondito e strutturato del seguente video. Tratta ogni sezione, argomento, esempio e dettaglio menzionato. Organizza l'output con sezioni chiare. Includi le transizioni tra argomenti dove rilevante. Non omettere nulla."
++    }
++  },
++  es: {
++    md: {
++      short: "Resume el siguiente video en un archivo markdown (.md). Céntrate solo en los puntos clave.",
++      normal: "Genera un resumen completo y detallado del siguiente video en un archivo markdown (.md). Debes considerar el video completo. Asegúrate de no omitir ningún punto, explicación o detalle importante.",
++      long: "Genera un resumen detallado y estructurado del siguiente video en un archivo markdown (.md). Cubre cada sección, argumento, ejemplo y detalle mencionado. Organiza el resultado con títulos y subtítulos claros. Incluye transiciones entre temas donde sea relevante. No omitas nada."
++    },
++    chat: {
++      short: "Resume el siguiente video. Céntrate solo en los puntos clave.",
++      normal: "Genera un resumen completo y detallado del siguiente video. Debes considerar el video completo. Asegúrate de no omitir ningún punto, explicación o detalle importante.",
++      long: "Genera un resumen detallado y estructurado del siguiente video. Cubre cada sección, argumento, ejemplo y detalle mencionado. Organiza el resultado con secciones claras. Incluye transiciones entre temas donde sea relevante. No omitas nada."
++    }
++  }
++};
++
++export function getPreset(lang, fmt, len = 'normal') {
++  const isMD = fmt !== 'chat';
++  const langKey = PROMPTS[lang] ? lang : 'en';
++  const fmtKey = isMD ? 'md' : 'chat';
++  return PROMPTS[langKey][fmtKey][len] || PROMPTS[langKey][fmtKey]['normal'];
++}

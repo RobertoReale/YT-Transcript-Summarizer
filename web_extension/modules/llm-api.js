@@ -230,9 +230,10 @@ export function buildChunkMessages(transcript, settings) {
   // to be able to say which of the two happened: "✂️ 7 parts" after the user
   // picked "1 part" reads as a bug unless the reason travels with it.
   const autoSplit = count > asked;
-  const isSeparate = settings.chunkMode === 'separate';
-  const merged = !isSeparate && (asked === 1 ? true : !!settings.chunkMerge);
-  if (merged) parts.push(mergeChatPrompt(count, lang));
+  const isSeparate = settings.chunkMode === 'separate' || 
+                     (settings.chunkMode === 'same' && settings.chunkAuto && count > (settings.chunkAutoNum || 3));
+  const merged = settings.chunkMerge ?? true;
+  if (merged && !isSeparate) parts.push(mergeChatPrompt(count, lang));
   return {
     parts, chunks: count, asked, autoSplit, merged, isSeparate,
     mergePlan: merged ? mergePlanFor(settings, count, lang, cap) : null,

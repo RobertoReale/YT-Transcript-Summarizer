@@ -404,12 +404,26 @@ async function processJob(job, settings) {
       const willPaste = !!(settings.autoPaste || settings.autoSubmit);
       
       if (web.isSeparate && web.chunks > 1) {
+        if (web.merged && willPaste) {
+          await chrome.storage.local.set({
+            separateMergeState: {
+              jobId: job.id,
+              replies: new Array(web.chunks).fill(null),
+              expected: web.chunks,
+              providerLabel,
+              webUrl,
+              title: displayTitle,
+              prompt: jobSettingsTs.prompt,
+              lang: jobSettingsTs.transcriptLang || 'en'
+            }
+          });
+        }
         for (let i = 0; i < web.parts.length; i++) {
           if (await batchCancelled()) throw new Error('Interrupted by user');
           const partWarn = ` (Part ${i + 1}/${web.chunks})`;
           await updateJobStatus(job.id, 'active', `🌐 Opening ${providerLabel}${partWarn}...`);
           if (willPaste) {
-            await setPendingLLMContent([web.parts[i]], !!settings.autoSubmit, job.id, null);
+            await setPendingLLMContent([web.parts[i]], !!settings.autoSubmit, job.id, null, web.merged, i);
           }
           await chrome.tabs.create({ url: webUrl, active: true });
           
@@ -525,7 +539,7 @@ function providerLabelOf(provider) {
 // transcript if the page was slow or the user was logged out) and kept it
 // forever otherwise, so an unrelated visit to claude.ai days later got a
 // surprise paste.
-async function setPendingLLMContent(parts, autoSubmit, jobId = null, mergePlan = null) {
+async function setPendingLLMContent(parts, autoSubmit, jobId = null, mergePlan = null, needReplyText = false, partIndex = 0) {
   const list = Array.isArray(parts) ? parts : [parts];
   await dropOrphanPending(jobId);
   await chrome.storage.local.set({
@@ -534,7 +548,7 @@ async function setPendingLLMContent(parts, autoSubmit, jobId = null, mergePlan =
     // real outcome back to the job it belongs to.
     // `merge` lets the content script rebuild the last message out of the
     // partial answers it can read on the page (see mergePlanFor in llm-api.js).
-    pendingLLMContent: { parts: list, text: list[0], autoSubmit, jobId, merge: mergePlan, ts: Date.now() }
+    pendingLLMContent: { parts: list, text: list[0], autoSubmit, jobId, merge: mergePlan, ts: Date.now(), needReplyText, partIndex }
   });
 }
 
@@ -626,10 +640,49 @@ async function handlePasteReport(msg) {
   let status = 'done';
   let text;
   
+  const { separateMergeState } = await chrome.storage.local.get('separateMergeState');
+  let stateObj = separateMergeState;
+
   if (info.isSeparate && info.chunks > 1) {
     if (msg.ok) {
-      const note = ` (✂️ ${info.chunks} separate parts)`;
-      text = `✅ Opened ${info.chunks} tabs for ${providerLabel}${scope}${note}${tail}`;
+      if (info.merged && stateObj && stateObj.jobId === msg.jobId) {
+        if (msg.replyText) {
+          stateObj.replies[msg.partIndex] = msg.replyText;
+          await chrome.storage.local.set({ separateMergeState: stateObj });
+        }
+        const missing = stateObj.replies.filter(r => r === null).length;
+        if (missing > 0) {
+          status = 'active';
+          text = `⏳ Gathering replies for merge... (${info.chunks - missing}/${info.chunks})${tail}`;
+        } else {
+          status = 'active';
+          text = `🌐 Opening final merge tab for ${providerLabel}${scope}${tail}`;
+          
+          const mergeMsg = mergeApiPrompt(stateObj.prompt, stateObj.expected, stateObj.lang);
+          const joined = stateObj.replies.map((r, i) => `${chunkHeading(i + 1, stateObj.expected, stateObj.lang)}\n\n${r}`).join('\n\n');
+          const finalPayload = `${mergeMsg}\n\n---\n\n${joined}`;
+          
+          await setPendingLLMContent([finalPayload], true, stateObj.jobId, null);
+          await chrome.tabs.create({ url: stateObj.webUrl, active: true });
+          
+          await chrome.storage.local.remove('separateMergeState');
+          
+          await pasteWatchAdd(msg.jobId, {
+            providerLabel: info.providerLabel,
+            title: info.title,
+            chunks: 1,
+            warn: info.warn,
+            overflowNote: info.overflowNote,
+            merged: false,
+            isSeparate: false,
+            autoSplit: false,
+            autoSubmit: true
+          });
+        }
+      } else {
+        const note = ` (✂️ ${info.chunks} separate parts)`;
+        text = `✅ Opened ${info.chunks} tabs for ${providerLabel}${scope}${note}${tail}`;
+      }
     } else {
       status = 'error';
       text = `❌ Paste into one of the ${providerLabel} tabs failed${scope}${tail}`;
@@ -785,6 +838,9 @@ async function summarizeTranscript(transcript, settings, jobId, appendLog, label
   // Optional extra call: fuse the partials into one summary. If it fails there
   // is no reason to throw away N successful calls — keep the joined parts.
   if (await batchCancelled()) throw new Error('Interrupted by user');
+  if (settings.chunkMerge === false) {
+    return { summary: joined, truncated, kept, total, chunks: n, merged: false };
+  }
   await updateJobStatus(jobId, 'active', `${label} Merging ${n} parts...`);
   try {
     if (await cancellableSleep(1500)) throw new Error('Interrupted by user');

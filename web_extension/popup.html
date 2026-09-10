@@ -103,6 +103,11 @@
       <option value="separate">Separate conversations</option>
     </select>
   </div>
+  <div class="field field-row" id="field-chunk-auto">
+    <label>Auto-Separate Threshold <span class="label-note">— if > X parts</span></label>
+    <input type="checkbox" id="chunk-auto-cb" checked>
+    <input type="number" id="chunk-auto-num" min="2" max="99" value="3" style="width: 50px; margin-left: 8px;">
+  </div>
   <div class="field field-row" id="field-chunk-merge">
     <label>🔗 Merge Chunks <span class="label-note">— combine partial summaries</span></label>
     <input type="checkbox" id="chunk-merge-cb" checked>

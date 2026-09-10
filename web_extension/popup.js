@@ -96,7 +96,7 @@ async function init() {
     useThinking, autoPaste, autoSubmit, combinedPrompt, saveTranscriptFile,
     outputFormat, summaryLength, jobs: savedJobs, running: savedRunning, theme,
     ttsState, ttsRate, ttsVoice, ttsText, webDelay, ttsLocalUrl,
-    includeTimestamps, chunkMode, chunkMerge, timeStart, timeEnd
+    includeTimestamps, chunkMode, chunkAuto, chunkAutoNum, chunkMerge, timeStart, timeEnd
   } = stored;
 
   // Migrate legacy apiKey → apiKeys.anthropic
@@ -140,25 +140,29 @@ async function init() {
 
   const modeSel = document.getElementById('chunk-mode-select');
   const mergeCb = document.getElementById('chunk-merge-cb');
+  const autoCb = document.getElementById('chunk-auto-cb');
+  const autoNum = document.getElementById('chunk-auto-num');
+  const fieldAuto = document.getElementById('field-chunk-auto');
+
   if (modeSel) {
     modeSel.value = chunkMode || 'same';
+    fieldAuto.classList.toggle('hidden', modeSel.value !== 'same');
     modeSel.addEventListener('change', () => {
-      if (modeSel.value === 'separate') {
-        mergeCb.checked = false;
-        mergeCb.disabled = true;
-      } else {
-        mergeCb.disabled = false;
-      }
+      fieldAuto.classList.toggle('hidden', modeSel.value !== 'same');
       persistSettings();
     });
   }
   if (mergeCb) {
     mergeCb.checked = chunkMerge ?? true;
-    if (chunkMode === 'separate') {
-      mergeCb.checked = false;
-      mergeCb.disabled = true;
-    }
     mergeCb.addEventListener('change', persistSettings);
+  }
+  if (autoCb) {
+    autoCb.checked = chunkAuto ?? false;
+    autoCb.addEventListener('change', persistSettings);
+  }
+  if (autoNum) {
+    autoNum.value = chunkAutoNum ?? 3;
+    autoNum.addEventListener('change', persistSettings);
   }
 
   const currentLang = transcriptLang || 'auto';
