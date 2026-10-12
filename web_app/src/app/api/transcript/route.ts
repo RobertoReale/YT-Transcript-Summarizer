@@ -2,12 +2,10 @@
 import { NextResponse } from 'next/server';
 import {
   fetchViaSupadata,
-  fetchViaOpenInstances,
   fetchViaAndroidPlayer,
   fetchViaGetTranscript,
   fetchViaTimedText,
   fetchViaYoutubeTranscriptPackage,
-  fetchViaWhisperAI,
   fetchViaTranscriptAPI,
 } from '@/lib/youtube-api';
 
@@ -41,16 +39,13 @@ async function fetchVideoTitle(videoId: string): Promise<string | null> {
 // timer fires. We need to finish and flush the SSE response before Vercel's
 // hard maxDuration=120s deadline kills the process.
 const GLOBAL_TIMEOUT_MS = 100_000;
-const TRUNCATION_MIN_LENGTH = 5000;
-const SENTENCE_END_RE =
-  /[.!?\u2026\u00BB\u3002\uFF01\uFF1F)\]"'\u201D\u2019\u00AB]$/;
 
 export async function POST(request: Request) {
   // ── Synchronous validation (no streaming needed for instant errors) ─────
   let body: { 
     url?: string; 
     lang?: string;
-    apiKeys?: { groq?: string; supadata?: string; transcriptApi?: string };
+    apiKeys?: { supadata?: string; transcriptApi?: string };
   };
   try {
     body = await request.json();
@@ -99,156 +94,53 @@ export async function POST(request: Request) {
       let strategy = '';
       let timedOut = false;
 
-      // ── Truncation heuristics ──────────────────────────────────────────
-      const looksTruncated = (r: TranscriptResult | null): boolean => {
-        // Auto-generated transcripts often lack punctuation at the end.
-        // We shouldn't assume a transcript is truncated just because of missing punctuation.
-        // Trust that if the API returned a large transcript, it's complete.
-        return false;
-      };
-
-      const better = (candidate: TranscriptResult | null): boolean => {
-        if (!candidate) return false;
-        if (!result) return true;
-        // Prefer a non-truncated candidate over a truncated result
-        if (looksTruncated(result) && !looksTruncated(candidate)) return true;
-        // Never replace a good result with a truncated but longer candidate
-        if (!looksTruncated(result) && looksTruncated(candidate)) return false;
-        return candidate.transcript.length > result.transcript.length;
-      };
-
       /** Returns true if we should try the next strategy. */
       const shouldContinue = (): boolean =>
-        !timedOut && !request.signal.aborted && (!result || looksTruncated(result));
+        !timedOut && !request.signal.aborted && !result;
 
       // ── Global timeout ─────────────────────────────────────────────────
       // Prevents the entire strategy chain from running forever.
       // When it fires, the current in-progress strategy finishes but no new
-      // ones start. The best partial result found so far is returned.
+      // ones start.
       const globalTimer = setTimeout(() => {
         timedOut = true;
       }, GLOBAL_TIMEOUT_MS);
 
+      // Cheapest and most reliable first. The InnerTube ANDROID/iOS clients
+      // return caption URLs that need no PO token; the paid services (only
+      // when a key is configured) are the answer when YouTube blocks this
+      // server's IP; the rest are long shots kept as free last resorts.
+      // Piped/Invidious and the Cobalt-based Whisper fallback were removed:
+      // Piped shut down, the listed Invidious instances are gone, and the
+      // Cobalt v7 API was switched off in November 2024.
+      const strategies: Array<[string, () => Promise<TranscriptResult | null>]> = [
+        ['Android Player', () => fetchViaAndroidPlayer(videoId, log, lang)],
+        ['Supadata API', () => fetchViaSupadata(videoId, log, lang, apiKeys?.supadata)],
+        ['TranscriptAPI', () => fetchViaTranscriptAPI(videoId, log, lang, apiKeys?.transcriptApi)],
+        ['Watch Page', () => fetchViaGetTranscript(videoId, log, lang)],
+        ['Timedtext API', () => fetchViaTimedText(videoId, log, lang)],
+        ['youtube-transcript', () => fetchViaYoutubeTranscriptPackage(videoId, log, lang)],
+      ];
+
       try {
-        // Strategy 0: Supadata API (Requires API Key in code or env)
-        if (shouldContinue()) {
+        for (const [name, run] of strategies) {
+          if (!shouldContinue()) break;
           try {
-            const r = await fetchViaSupadata(videoId, log, lang, apiKeys?.supadata);
-            if (r) {
+            const r = await run();
+            if (r?.transcript) {
               result = r;
-              strategy = 'Supadata API';
+              strategy = name;
             }
           } catch (e: any) {
-            log(`Supadata Error: ${e.message}`);
-          }
-        }
-
-        // Strategy 1: Piped / Invidious instance rotator
-        if (shouldContinue()) {
-          log('Trying Piped/Invidious instance rotator...');
-          try {
-            const r = await fetchViaOpenInstances(videoId, log, lang);
-            if (better(r)) {
-              result = r;
-              strategy = 'Piped/Invidious';
-            }
-          } catch (e: any) {
-            log(`Open instances Error: ${e.message}`);
-          }
-        }
-
-        // Strategy 2: Android Player
-        if (shouldContinue()) {
-          log('Trying Android Player API...');
-          try {
-            const r = await fetchViaAndroidPlayer(videoId, log, lang);
-            if (better(r)) {
-              result = r;
-              strategy = 'Android Player';
-            }
-          } catch (e: any) {
-            log(`Android Player Error: ${e.message}`);
-          }
-        }
-
-        // Strategy 3: Watch page + caption CDN URLs
-        if (shouldContinue()) {
-          log('Trying Watch Page extraction...');
-          try {
-            const r = await fetchViaGetTranscript(videoId, log, lang);
-            if (better(r)) {
-              result = r;
-              strategy = 'Watch Page';
-            }
-          } catch (e: any) {
-            log(`Watch Page Error: ${e.message}`);
-          }
-        }
-
-        // Strategy 4: Legacy timedtext API
-        if (shouldContinue()) {
-          log('Trying Timedtext API...');
-          try {
-            const r = await fetchViaTimedText(videoId, log, lang);
-            if (better(r)) {
-              result = r;
-              strategy = 'Timedtext API';
-            }
-          } catch (e: any) {
-            log(`Timedtext Error: ${e.message}`);
-          }
-        }
-
-        // Strategy 5: youtube-transcript npm package
-        if (shouldContinue()) {
-          log('Trying youtube-transcript package...');
-          try {
-            const r = await fetchViaYoutubeTranscriptPackage(
-              videoId,
-              log,
-              lang
-            );
-            if (better(r)) {
-              result = r;
-              strategy = 'youtube-transcript';
-            }
-          } catch (e: any) {
-            log(`youtube-transcript package Error: ${e.message}`);
-          }
-        }
-
-        // Strategy 6: Third-Party SaaS (TranscriptAPI.com)
-        if (shouldContinue()) {
-          try {
-            const r = await fetchViaTranscriptAPI(videoId, log, lang, apiKeys?.transcriptApi);
-            if (better(r)) {
-              result = r;
-              strategy = 'TranscriptAPI';
-            }
-          } catch (e: any) {
-            log(`TranscriptAPI Error: ${e.message}`);
-          }
-        }
-
-        // Strategy 7: Ultimate Fallback — Whisper AI (Groq + Audio Extract)
-        if (shouldContinue()) {
-          log('Trying Whisper AI fallback...');
-          try {
-            const r = await fetchViaWhisperAI(videoId, log, lang, apiKeys?.groq);
-            if (better(r)) {
-              result = r;
-              strategy = 'Whisper AI';
-            }
-          } catch (e: any) {
-            log(`Whisper AI Error: ${e.message}`);
+            log(`${name} error: ${e.message}`);
           }
         }
 
         clearTimeout(globalTimer);
 
-        if (timedOut && result?.transcript) {
+        if (timedOut && !result) {
           log(
-            `⏱ Global timeout reached (${GLOBAL_TIMEOUT_MS / 1000}s). Returning best result so far.`
+            `⏱ Global timeout reached (${GLOBAL_TIMEOUT_MS / 1000}s). Stopped trying further strategies.`
           );
         }
 
@@ -263,9 +155,6 @@ export async function POST(request: Request) {
         }
 
         // ── Success ──────────────────────────────────────────────────────
-        // Only warn about truncation when we also timed out — otherwise we
-        // ran every strategy and the result is as complete as it can be.
-        const truncated = looksTruncated(result) && timedOut;
 
         const title =
           result.title && result.title !== videoId
@@ -277,7 +166,7 @@ export async function POST(request: Request) {
           title,
           transcript: result.transcript,
           strategy,
-          truncated,
+          truncated: false,
           timedOut,
         });
       } catch (error: any) {

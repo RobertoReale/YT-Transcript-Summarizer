@@ -16,7 +16,7 @@ Part of the [YT Transcript Summarizer](../README.md) project. For the desktop br
 - **Copy & Open** — copies the prompt to the clipboard and opens the provider's chat UI in one tap
 - **Share** — native Web Share API for passing the prompt to any app
 - **Strategy badge** — shows which extraction method succeeded (amber for Supadata with quota warning, green for all others)
-- **5-minute transcript cache** — repeated requests for the same video are served instantly from localStorage
+- **7-day transcript cache** — repeated requests for the same video are served instantly from localStorage
 - Recent video history (stored locally)
 - Dark / light theme toggle
 - Installable as a PWA (Add to Home Screen)
@@ -25,16 +25,20 @@ Part of the [YT Transcript Summarizer](../README.md) project. For the desktop br
 
 ## How it works
 
-The transcript is extracted server-side via a Next.js API route. Six strategies are tried in order, falling back to the next on failure:
+The transcript is extracted server-side via a Next.js API route. Strategies are tried in order until one succeeds:
 
-1. **Supadata API** — third-party service that reliably bypasses YouTube datacenter IP blocks (requires `SUPADATA_API_KEY`)
-2. **Piped / Invidious instance rotator** — proxies YouTube through a list of public open instances
-3. **Android Player API** — uses the Android client context to bypass PO Token restrictions
-4. **Watch Page extraction** — downloads the watch page HTML and reads caption track URLs directly
-5. **Legacy Timedtext API** — calls the `/api/timedtext` endpoint
+1. **InnerTube Player API** — Android, iOS and TV clients; caption URLs from these need no PO token. Free and fast, and the one that works from a home connection.
+2. **Supadata API** — paid service that works around YouTube's blocks on datacenter IPs (only with a key: `SUPADATA_API_KEY` or the in-app ⚙️ settings)
+3. **TranscriptAPI.com** — same idea, alternative provider (only with a key)
+4. **Watch page** — reads caption URLs from the watch page HTML, then tries `get_transcript`
+5. **Legacy timedtext API**
 6. **`youtube-transcript` npm package** — community library as a last resort
 
-After a successful extraction, the result is cached in localStorage for 5 minutes. Subsequent requests for the same video skip the API call entirely and show the strategy name with `(cached)`.
+**Hosting note.** YouTube often answers requests from cloud/datacenter IPs (Vercel included) with "Sign in to confirm you're not a bot" or HTTP 429. If extraction fails on your deployment but works with `npm run dev` at home, that is why — add a Supadata or TranscriptAPI key, or use the browser extension, which runs from your own connection.
+
+The Piped/Invidious rotator and the Whisper fallback were removed in 1.6.0: Piped has shut down, the listed Invidious instances are gone, and the Cobalt API the Whisper fallback used to fetch audio was switched off in November 2024.
+
+After a successful extraction, the result is cached in localStorage for 7 days. Subsequent requests for the same video skip the API call entirely and show the strategy name with `(cached)`.
 
 ---
 
@@ -115,7 +119,7 @@ In the Vercel project dashboard → **Settings → Domains**, add your domain an
 Any platform that supports Next.js works (Railway, Render, Fly.io, self-hosted Node).  
 Run `npm run build` then `npm run start`. Set `SUPADATA_API_KEY` in the host's environment variables panel if desired.
 
-`SUPADATA_API_KEY` is optional — without it the app skips Strategy 1 and falls back to the remaining five extraction strategies.
+`SUPADATA_API_KEY` and `TRANSCRIPTAPI_KEY` are optional — without them those two strategies are skipped.
 
 ---
 
@@ -128,10 +132,11 @@ src/
 │   ├── layout.tsx            Root layout, PWA metadata, fonts
 │   ├── globals.css           Tailwind base + theme variables
 │   └── api/transcript/
-│       └── route.ts          POST /api/transcript — 6-strategy extraction
+│       └── route.ts          POST /api/transcript — extraction with fallbacks, streamed as SSE
 ├── components/
 │   ├── TranscriptForm.tsx    URL input, provider/language/length selectors
-│   └── ActionButtons.tsx     Copy & Open, Share
+│   ├── ActionButtons.tsx     Copy & Open, Share
+│   └── SettingsModal.tsx     Optional Supadata / TranscriptAPI keys
 └── lib/
     ├── config.ts             Providers, prompts, YouTube API config
     ├── youtube-api.ts        Transcript extraction strategies

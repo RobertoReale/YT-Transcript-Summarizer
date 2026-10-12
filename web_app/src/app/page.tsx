@@ -166,7 +166,7 @@ export default function Home() {
     useState<CacheChoice | null>(null);
   const [cacheCleared, setCacheCleared] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [apiKeys, setApiKeys] = useState<{ groq?: string; supadata?: string; transcriptApi?: string }>({});
+  const [apiKeys, setApiKeys] = useState<{ supadata?: string; transcriptApi?: string }>({});
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -178,7 +178,6 @@ export default function Home() {
       if (saved) setHistory(JSON.parse(saved));
       
       setApiKeys({
-        groq: localStorage.getItem("GROQ_API_KEY") || undefined,
         supadata: localStorage.getItem("SUPADATA_API_KEY") || undefined,
         transcriptApi: localStorage.getItem("TRANSCRIPTAPI_KEY") || undefined,
       });

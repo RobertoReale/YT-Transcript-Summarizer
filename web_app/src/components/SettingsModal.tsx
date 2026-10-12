@@ -1,41 +1,35 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (keys: { groq: string; supadata: string; transcriptApi: string }) => void;
+  onSave: (keys: { supadata: string; transcriptApi: string }) => void;
 }
 
-export default function SettingsModal({ isOpen, onClose, onSave }: SettingsModalProps) {
-  const [groqKey, setGroqKey] = useState("");
-  const [supadataKey, setSupadataKey] = useState("");
-  const [transcriptApiKey, setTranscriptApiKey] = useState("");
+type FormProps = Omit<SettingsModalProps, "isOpen">;
 
-  useEffect(() => {
-    if (isOpen) {
-      setGroqKey(localStorage.getItem("GROQ_API_KEY") || "");
-      setSupadataKey(localStorage.getItem("SUPADATA_API_KEY") || "");
-      setTranscriptApiKey(localStorage.getItem("TRANSCRIPTAPI_KEY") || "");
-    }
-  }, [isOpen]);
+export default function SettingsModal({ isOpen, ...props }: SettingsModalProps) {
+  // Mounting the form only while open lets it read localStorage in its state
+  // initializers — every open starts from what is actually saved.
+  return isOpen ? <SettingsForm {...props} /> : null;
+}
+
+function SettingsForm({ onClose, onSave }: FormProps) {
+  const [supadataKey, setSupadataKey] = useState(() => localStorage.getItem("SUPADATA_API_KEY") || "");
+  const [transcriptApiKey, setTranscriptApiKey] = useState(() => localStorage.getItem("TRANSCRIPTAPI_KEY") || "");
 
   const handleSave = () => {
-    if (groqKey) localStorage.setItem("GROQ_API_KEY", groqKey);
-    else localStorage.removeItem("GROQ_API_KEY");
-
     if (supadataKey) localStorage.setItem("SUPADATA_API_KEY", supadataKey);
     else localStorage.removeItem("SUPADATA_API_KEY");
 
     if (transcriptApiKey) localStorage.setItem("TRANSCRIPTAPI_KEY", transcriptApiKey);
     else localStorage.removeItem("TRANSCRIPTAPI_KEY");
 
-    onSave({ groq: groqKey, supadata: supadataKey, transcriptApi: transcriptApiKey });
+    onSave({ supadata: supadataKey, transcriptApi: transcriptApiKey });
     onClose();
   };
-
-  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
@@ -63,21 +57,11 @@ export default function SettingsModal({ isOpen, onClose, onSave }: SettingsModal
         </div>
 
         <p className="text-sm text-[var(--foreground)] opacity-70">
-          Keys are stored securely in your browser&apos;s local storage and used only to bypass limits. The app uses free methods by default.
+          Optional paid fallbacks for when YouTube blocks the server&apos;s IP. Keys stay in this browser&apos;s local storage and are sent only with your own transcript requests. Free methods are always tried first.
         </p>
 
         {/* Inputs */}
         <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-[var(--foreground)] opacity-80 pl-1">Groq API Key (Whisper AI Fallback)</label>
-            <input
-              type="password"
-              placeholder="gsk_..."
-              value={groqKey}
-              onChange={(e) => setGroqKey(e.target.value)}
-              className="w-full bg-[var(--background)] border border-[var(--card-border)] rounded-xl px-4 py-3 text-sm text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all"
-            />
-          </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-[var(--foreground)] opacity-80 pl-1">Supadata API Key</label>
             <input
