@@ -16,16 +16,20 @@ GEMINI.md
 *.swo
 
 # Web app — Next.js
-web app/.next/
-web app/out/
-web app/node_modules/
-web app/.env
-web app/.env.local
-web app/.env.*.local
+web_app/.next/
+web_app/out/
+web_app/node_modules/
+web_app/.env
+web_app/.env.local
+web_app/.env.*.local
+node_modules/
 
 # Web extension build artifacts
 web_extension/dist/
 web_extension/web_extension.zip
+
+# Local experiments (puppeteer screenshots, throwaway scripts)
+web_extension/scratch/
 
 # Logs
 *.log

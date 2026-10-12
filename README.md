@@ -14,7 +14,7 @@ The project ships as two complementary clients that share the same transcript-ex
 ## How it works
 
 1. A YouTube URL is submitted.
-2. The transcript is extracted using multiple strategies with automatic fallback (6 server-side strategies in the web app, 4 in the extension).
+2. The transcript is extracted using several strategies with automatic fallback — YouTube's InnerTube Android/iOS clients first, which need no PO token.
 3. If the video has no captions in the requested language, YouTube's auto-translate (`tlang`) is used automatically.
 4. A prompt is assembled (provider, language, length, and format are all configurable).
 5. The result is either sent directly to an AI API, or copied so you can paste it into any chat UI.
@@ -25,9 +25,10 @@ The project ships as two complementary clients that share the same transcript-ex
 
 | Feature | Extension | Web app |
 |---------|-----------|---------|
-| AI providers | Claude, OpenAI, Gemini, OpenRouter, Custom | Claude, OpenAI, Gemini |
+| AI providers | Claude, OpenAI, Gemini, Groq, OpenRouter, Custom | Claude, OpenAI, Gemini |
 | Web mode (open chat UI + copy) | ✅ | ✅ |
 | API mode (call AI directly) | ✅ | — |
+| Side panel with live, streamed summary + clickable timestamps | ✅ | — |
 | Transcript download (.txt) | ✅ | ✅ |
 | Extraction log export (copy) | — | ✅ |
 | Batch queue | ✅ | — |
@@ -64,13 +65,13 @@ Same 15 languages as the Web app.
 ## Shared logic
 
 Both clients use the same:
-- **Transcript extraction strategies** (Android Player API, `get_transcript` endpoint, Timedtext API)
+- **Transcript extraction strategies** (InnerTube Android/iOS player API, watch page, `get_transcript`)
 - **Provider configuration** (names, models, default models, API endpoints)
 - **Prompt presets** (Italian, English, Spanish, French, German, Portuguese; three lengths; two formats)
 
 The extension is plain JavaScript (ES modules, Manifest V3); the web app is TypeScript (Next.js, React, Tailwind CSS 4). The shared configuration is kept in sync between `web_extension/modules/config.js` and `web_app/src/lib/config.ts`.
 
-The web app also has two additional server-side-only strategies (Supadata API and Piped/Invidious instance rotator) that require server-side fetch and cannot run in a browser extension.
+The web app can also use two optional paid services (Supadata, TranscriptAPI.com) for deployments whose datacenter IP YouTube blocks; the extension does not need them, since it runs from the user's own connection.
 
 ---
 
@@ -83,11 +84,14 @@ YT-Transcript-Summarizer/
 │   ├── background.js       Service worker: extraction, API calls, TTS
 │   ├── popup.html/css      Extension popup UI
 │   ├── popup.js            Popup orchestrator: init, port, job CRUD, batch
+│   ├── sidepanel.*         Side panel / Firefox sidebar: live summary of the current video
 │   ├── *_paste.js          Content scripts for Claude, ChatGPT, Gemini
 │   ├── tts_offscreen.*     Offscreen document for Web Speech API
 │   └── modules/
 │       ├── config.js           Providers, prompts, YouTube API config
-│       ├── llm-api.js          AI provider integrations
+│       ├── llm-stream.js       Streaming client for every AI provider
+│       ├── llm-api.js          Batch summaries, web-mode splitting and merge
+│       ├── markdown.js         Markdown renderer for the side panel
 │       ├── youtube-api.js      Transcript extraction strategies
 │       ├── popup-state.js      Shared mutable state object
 │       ├── popup-history.js    History panel
@@ -103,7 +107,7 @@ YT-Transcript-Summarizer/
     │   │   ├── page.tsx        Main UI (form, prompt editor, cache, history)
     │   │   ├── layout.tsx
     │   │   ├── globals.css
-    │   │   └── api/transcript/ Server-side extraction endpoint (6 strategies)
+    │   │   └── api/transcript/ Server-side extraction endpoint
     │   ├── components/
     │   │   ├── TranscriptForm.tsx
     │   │   └── ActionButtons.tsx
