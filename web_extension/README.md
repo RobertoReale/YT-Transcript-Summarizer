@@ -1,12 +1,13 @@
 # YT Summarizer (Web Extension)
 
-A browser extension (Chrome/Firefox) that extracts transcripts from YouTube videos and summarizes them using your AI of choice — Claude, ChatGPT, Gemini, OpenRouter, or any local OpenAI-compatible model.
+A browser extension (Chrome/Firefox) that extracts transcripts from YouTube videos and summarizes them using your AI of choice — Claude, ChatGPT, Gemini, Groq, OpenRouter, or any local OpenAI-compatible model.
 
 ---
 
 ## Features at a glance
 
-- **5 AI providers** — Anthropic Claude, OpenAI, Google Gemini, OpenRouter, and custom/local endpoints
+- **Side panel** (Chrome) / **sidebar** (Firefox) — summarize the video you are watching, streamed live next to it; every `[m:ss]` in the summary seeks the player
+- **6 AI providers** — Anthropic Claude, OpenAI, Google Gemini, Groq, OpenRouter, and custom/local endpoints
 - **3 operating modes** — Web (paste into the AI chat UI), Transcript Only (download raw text), API (call the AI directly)
 - **Batch queue** — add multiple YouTube URLs and process them all at once
 - **Bulk add** — paste a whole list of links (one per line, or space/comma-separated) and queue them in one click
@@ -14,7 +15,7 @@ A browser extension (Chrome/Firefox) that extracts transcripts from YouTube vide
 - **Per-video settings** — override format and summary length for each video individually
 - **Summary length** — Short, Normal, or Long presets, each with English and Italian prompts
 - **Output format** — Markdown (`.md`) or plain Chat format
-- **Reliable extraction** — three fallback strategies to handle YouTube's PO Token restrictions
+- **Reliable extraction** — InnerTube ANDROID/iOS clients first, with page and real-tab fallbacks, plus a coverage check so a partial transcript is never passed off as complete
 - **Combine all** — merge all queued transcripts into a single AI prompt
 - **Thinking mode** — extended reasoning for supported Claude models
 - **Video history** — log of all processed videos with timestamps and links
@@ -33,6 +34,7 @@ Select your provider from the tab bar at the top of the popup. Each provider has
 | **Anthropic Claude** | Claude.ai | ✅ | Supports Thinking mode |
 | **OpenAI** | ChatGPT | ✅ | |
 | **Google Gemini** | Gemini | ✅ | |
+| **Groq** | — | ✅ | Fast open models (gpt-oss) |
 | **OpenRouter** | — | ✅ | Aggregates many models |
 | **Custom** | — | ✅ | Any OpenAI-compatible endpoint (e.g. Ollama) |
 
@@ -73,13 +75,21 @@ Click **✎** on any queued job to expand its settings panel. You can override t
 
 ---
 
+## Side panel
+
+Click **◨** in the popup header to open the side panel (Chrome) or sidebar (Firefox). It follows the YouTube video in the active tab — including YouTube's in-page navigation — and **Summarize** streams the summary as it is written. **Stop** really stops it (the request is cancelled and nothing half-finished is cached). The summary supports headings, nested lists, tables and code; every `[m:ss]` is a link that jumps the player to that moment. **📋 Copy** copies the Markdown, **⬇ .md** saves it.
+
+The side panel calls the provider's API directly, so it needs an API key (⚙️ in the panel; Google Gemini and Groq have free tiers) or a custom/local endpoint. Language, summary length and prompt are shared with the popup. The last 100 summaries are cached per video.
+
+---
+
 ## Other features
 
 ### 📋 Video history
 Click the **📋** button in the header to view a log of all videos processed, with title, URL, and timestamp. Click any entry to open the video.
 
 ### 🧠 Thinking mode
-Available in API mode for supported Claude models (`claude-sonnet-4-6`, `claude-opus-4-7`, `claude-3-7-sonnet`). Enables extended reasoning before the summary.
+Available in API mode and in the side panel for Claude models. Current models get adaptive thinking at high effort (Claude 5.x models think by default; the chip makes them think harder); older models with a fixed thinking budget get that instead.
 
 ### 📎 Combine all
 When enabled, all queued transcripts are merged into a single prompt and sent as one request — useful for comparing or cross-referencing multiple videos.
@@ -98,7 +108,7 @@ Toggle dark/light theme from the header. Preference is saved.
 
 ### Firefox (AMO)
 
-Install directly from the [Firefox Add-ons page](https://addons.mozilla.org/it/firefox/addon/yt-transcript-summarizer/). Requires Firefox 128+.
+Install directly from the [Firefox Add-ons page](https://addons.mozilla.org/it/firefox/addon/yt-transcript-summarizer/). Requires Firefox 140+.
 
 ### Chrome / Chromium (unpacked)
 
@@ -147,26 +157,15 @@ Under the hood this uses YouTube's internal `browse` API (the same one the site 
 
 API keys are stored locally in browser storage and are only ever sent to the respective provider's API endpoint.
 
-### Splitting long transcripts
+### Long transcripts
 
-A very long video can exceed what one request handles well — the transcript gets truncated to the model's context, or the summary thins out towards the end. The **✂️** dropdown in the options bar sets how many equal parts the transcript is cut into (`1 part` = off, up to 10), and applies to every video in the queue. To override it for a single video, open that video's **✎** panel and pick a number next to **✂️ Split** — `🔗 Global` keeps whatever the dropdown says.
+Current models take a whole transcript in one request, so there is no manual split: API mode and the side panel send it in one go (clamped to a generous per-provider budget, with a warning in the output if anything had to be cut).
 
-The transcript is cut into that many slices at line/sentence boundaries, and each is sent with a note telling the model it is seeing part *i* of *n* of a single video, in your transcript language. The number you pick is adjusted automatically in two cases:
+**Web mode** is the exception, because a chat composer has its own hard limit far below the model's context — Gemini keeps the first 32 000 characters of a message and silently drops the rest. When one message would not fit, the transcript is split *just enough* to fit (prompt and part note included), at line/sentence boundaries, and the parts are pasted one after another into the same conversation; the extension waits for each answer before sending the next. This needs **↵ Auto-submit** (or the *separate tabs* mode): without it only part 1 could be delivered, so the transcript is sent whole and the status line says how far over the limit it is. With **💾 Save .txt** each part is also written to its own `_part1of3.txt` file.
 
-- **Downwards** — a transcript too short to fill the requested parts (under ~2 000 characters each) is split into fewer, so a 3-minute video never becomes 8 pointless requests.
-- **Upwards, in Web mode only** — a chat composer has its own hard limit, far below the model's context. Gemini keeps the first 32 000 characters of a message and silently drops the rest, so a 3-hour video split into "2 parts" lost ~40% of itself without a word. The number of parts is raised until every message fits (prompt and part note included). Claude.ai and ChatGPT have no verified limit and are left alone. If even 10 parts are not enough, the status line says how far over the limit the run went instead of pretending it all arrived.
+The status line stays at **📤 Sending to …** until the chat tab confirms what actually landed — only then does it become **✅ Sent**. A paste that fails, or a sequence that stops halfway, reports **⚠️ Only part *n* of *m*** / **❌ Paste failed** and raises a desktop notification.
 
-**API mode** — each part is summarized in its own call and the partial summaries are concatenated under `## Part i/n` headings. Each part is a separate billed call and gets its own rate-limit retries, so a 429 on part 3 never re-sends parts 1 and 2.
-
-**Web mode** — the parts are pasted one after another into the *same* conversation, so the model keeps the earlier parts as context. Claude and ChatGPT sometimes turn a large paste into an attachment instead of composer text; that works just as well (the model reads the attachment in full), and the instruction is re-typed into the message so the request never gets buried inside the file. The extension waits for each answer to finish (it watches the provider's "stop generating" button) before sending the next part. This needs **↵ Auto-submit**: without permission to press Send only part 1 is pasted, and the status line says so. With **💾 Save .txt** enabled each part is also written to its own `_part1of3.txt` file, so you can paste the rest by hand.
-
-The status line stays at **📤 Sending to …** until the chat tab confirms what actually landed — only then does it become **✅ Sent**. A paste that fails, or a sequence that stops halfway, reports **⚠️ Only part *n* of *m*** / **❌ Paste failed** and raises a desktop notification, because the queue row has usually faded by the time the last part goes out. When merge is on and every part arrived but the final merge message did not, the run says so explicitly rather than counting the merge as a missing part — the whole video did reach the model. Without auto-submit the line ends at **✅ Pasted**, never **✅ Sent**. For **📎 Combine all** the single verdict updates every row of the run at once.
-
-**🧩 Merge parts** (optional, appears next to the dropdown as soon as you pick more than one part) asks for one more answer that fuses the partial summaries into a single unified summary. In API mode it is an extra call that receives the partials — and if that call fails, the partial summaries are kept rather than the whole run being lost.
-
-In web mode the extension does the same thing rather than relying on the chat's memory: it reads the partial answers back out of the page and pastes them into the merge message. Asking a chat model to "merge the summaries above" is not reliable — measured on a four-part video, the answer covered only the last two parts and read as if it covered the whole video. If the answers cannot be read back (an interface change, a composer too small to hold them), the merge still goes out as a plain follow-up and the status line says the merge **relied on the chat's memory**, so a half-covered summary never looks like a complete one.
-
-Both work for single videos and for **📎 Combine all**.
+**Merge** (Advanced Settings) asks for one more answer that fuses the partial summaries. The extension reads the partial answers back out of the page and pastes them into the merge message rather than relying on the chat's memory — measured on a four-part video, "merge the summaries above" covered only the last two parts. If the answers cannot be read back, the merge goes out as a plain follow-up and the status line says it **relied on the chat's memory**.
 
 ### Web mode auto-paste / auto-submit
 
@@ -182,38 +181,30 @@ Select **Custom** as the provider, enter your endpoint URL (e.g. `http://localho
 
 ## Transcript extraction
 
-The extension tries three strategies in order, falling back to the next if one fails:
+The extension tries three strategies in order, moving on when one fails or returns only part of the video:
 
-1. **Watch page + `get_transcript` endpoint** — downloads the watch page (with browser cookies) to extract fresh caption URLs, then falls back to the InnerTube `get_transcript` API
-2. **InnerTube Player API** — calls the internal player endpoint directly, trying the Android then iOS clients (two independent attestation paths that still return caption tracks without a PO token)
-3. **Real tab fallback** — opens the video in a background tab and reads the transcript from the page (reuses an existing tab if the video is already open)
+1. **InnerTube Player API** — YouTube's internal player endpoint with the Android, then iOS client (two independent attestation paths that still return caption URLs without a PO token). About a second.
+2. **Watch page** — downloads the watch page with your cookies and reads its caption tracks, then tries the `get_transcript` endpoint. Since YouTube began requiring a PO token on the web client's caption URLs this rarely succeeds; it is kept as a second chance.
+3. **Real tab fallback** — opens the video in a background tab and reads the transcript from inside the page (reuses an existing tab if the video is already open).
 
-If all three strategies fail, a `debug_<videoId>.txt` file is downloaded with full diagnostic output.
+Each result is checked against the video's duration: a transcript covering less than 80 % of it is only used if nothing better turns up, and the output says so. Diagnostics go to the service worker console; an HTTP 429 there means YouTube is rate-limiting your IP for a few minutes.
 
 ---
 
 ## Supported models
 
-**Anthropic Claude**
-- `claude-sonnet-4-6` (recommended)
-- `claude-opus-4-7` (most capable)
-- `claude-3-7-sonnet`
-- `claude-3-5-sonnet`
+Suggestions as of October 2026, checked against each provider's model and deprecation pages:
 
-**OpenAI**
-- `gpt-4o` (recommended)
-- `gpt-4o-mini`
-- `o1`, `o1-mini`
-- `gpt-4-turbo`
+| Provider | Default | Also suggested |
+|---|---|---|
+| Anthropic | `claude-sonnet-5-5` | `claude-opus-5-5`, `claude-haiku-5-5`, `claude-fable-5-1`, `claude-opus-4-8` |
+| OpenAI | `gpt-6.1-sol` | `gpt-6-astra`, `gpt-6-luna`, `gpt-5.6-sol` |
+| Gemini | `gemini-3.8-flash` | `gemini-3.5-flash-lite`, `gemini-3.1-pro-preview` |
+| Groq | `openai/gpt-oss-120b` | `openai/gpt-oss-20b`, `qwen/qwen3.8-27b` |
+| OpenRouter | `anthropic/claude-sonnet-5.5` | any model on openrouter.ai |
+| Custom | — | type the model name |
 
-**Google Gemini**
-- `gemini-2.0-flash` (recommended)
-- `gemini-1.5-pro`
-- `gemini-1.5-flash`
-
-**OpenRouter** — any model available on openrouter.ai (defaults provided as a starting point)
-
-**Custom** — any OpenAI-compatible model; type the model name manually
+A stored model the provider has shut down (Gemini 1.5/2.0, Groq Llama 3.x, Claude 3.x, OpenAI o1 / gpt-4-turbo, …) is replaced by the current default automatically, so an old setting cannot turn into a stream of API errors.
 
 > **Model field & keeping it current.** For every provider the model field is an editable combobox: the known models appear as dropdown suggestions, but you can always **type any model name** — so a new release is never blocked by a stale list. The suggestions live in one place, [`modules/config.js`](modules/config.js) (`PROVIDERS` → each provider's `models` array, plus `defaultModel`). Updating them is now optional cosmetic maintenance, not a requirement: if a suggestion is outdated, just type the current model name.
 
@@ -223,41 +214,43 @@ If all three strategies fail, a `debug_<videoId>.txt` file is downloaded with fu
 
 | Permission | Reason |
 |------------|--------|
-| `storage` | Save settings, API keys, job queue, and history locally |
-| `tabs` | Read current tab URL; open provider chat tabs |
-| `scripting` | Run transcript extraction in YouTube tabs (fallback strategy) |
+| `storage`, `unlimitedStorage` | Settings, API keys, job queue, history and cached summaries, all local |
+| `tabs` | Read the current tab URL; open provider chat tabs; follow the active video in the side panel |
+| `scripting` | Transcript extraction inside a YouTube tab (fallback strategy); seeking the player |
 | `downloads` | Save transcript and summary files |
 | `notifications` | Notify when batch processing completes |
 | `alarms` | Keep the service worker alive during long-running jobs |
-| `offscreen` | Text-to-Speech audio playback via Web Speech API or local TTS server |
-| `http://localhost/*`, `http://127.0.0.1/*` | Fetch audio from an optional local TTS server |
+| `offscreen` (Chrome) | Text-to-Speech playback and blob URLs for large downloads |
+| `declarativeNetRequest` | Give InnerTube requests a youtube.com Origin (see `rules.json`) |
+| `sidePanel` (Chrome) | The side panel |
+| `http://localhost/*`, `http://127.0.0.1/*` | Local models (Ollama, LM Studio) and an optional local TTS server |
+| optional `https://*/*` | Requested at run time, only for a custom endpoint on another host |
 
 ---
 
 ## Files
 
 ```
-manifest.json           Extension manifest (Manifest V3)
-background.js           Service worker: transcript extraction, API calls, TTS routing
-popup.html              Extension popup UI
-popup.css               Popup styles (light + dark theme)
-popup.js                Popup orchestrator: init, port, job CRUD, batch runner
-claude_paste.js         Content script: auto-paste into Claude.ai
-chatgpt_paste.js        Content script: auto-paste into ChatGPT
-gemini_paste.js         Content script: auto-paste into Gemini
-tts_offscreen.html      Offscreen document for Web Speech API audio playback
-logo.png                Extension icon
+manifest.json           Manifest V3, with both Chrome and Firefox keys
+background.js           Service worker / event page: extraction, batch runner, API calls
+popup.html/css/js       Popup: queue, modes, providers, batch
+sidepanel.html/css/js   Side panel / sidebar: live summary of the current video
+options.html/css/js     Options page: API key, prompt templates
+content_youtube.js      Seek bridge for [m:ss] links
+*_paste.js, paste_common.js   Content scripts that paste into Claude.ai, ChatGPT, Gemini
+tts_offscreen.*         Offscreen document (Text-to-Speech, blob URLs)
+rules.json              declarativeNetRequest Origin/Referer rewrite for InnerTube
 modules/
-  config.js             Providers, prompts, YouTube API config
-  llm-api.js            AI provider integrations
-  youtube-api.js        Transcript extraction strategies (3 strategies)
-  popup-state.js        Shared mutable state object for popup modules
-  popup-history.js      History panel logic
-  popup-tts.js          TTS panel logic
-  popup-render.js       Job rendering, chips, per-job settings UI
-  popup-settings.js     Provider/settings panel logic
-  ui-utils.js           escHtml, showMsg
-  utils.js              sleep, fetchWithTimeout, findInObject
+  config.js             Providers, models, prompts, YouTube client config
+  llm-stream.js         The one streaming client for every provider
+  llm-api.js            Batch summaries, web-mode splitting and merge
+  markdown.js           Dependency-free Markdown renderer (side panel)
+  transcript-parse.js   Caption parsing, timestamps, coverage check
+  youtube-api.js        Transcript extraction strategies, playlist paging
+  downloads.js          Safe filenames, large downloads
+  popup-*.js, ui-utils.js, utils.js, i18n.js
+test/                   `npm test` suites; test/e2e/ drives a real browser
+tools/build-zip.mjs     Store packages
 ```
 
 ---
@@ -266,17 +259,20 @@ modules/
 
 ### Duplicate-tab prevention extensions
 
-Extensions like *Prevent Duplicate Tabs* can block Strategy 4 (tab fallback) from opening a YouTube background tab. The extension already minimises this by reusing an open tab for the video if one exists — so the conflict only occurs when Strategies 1–2 all failed **and** the video isn't already open in a tab.
+Extensions like *Prevent Duplicate Tabs* can block Strategy 3 (tab fallback) from opening a YouTube background tab. The extension already minimises this by reusing an open tab for the video if one exists — so the conflict only occurs when Strategies 1–2 both failed **and** the video isn't already open in a tab.
 
 **Fix:** add `youtube.com` to the allowlist of the duplicate-tab extension.
 
 ---
 
-## Roadmap
+## Development
 
-Future improvements planned for this extension:
+```bash
+npm test          # unit and wiring tests (Node 22+, no dependencies to install)
+npm run build     # dist/yt-transcript-summarizer-<version>-{chrome,firefox}.zip
+```
 
-1. **Code Minification & Bundling**: Transitioning the build process to use tools like Vite or Rollup to bundle and minify the JavaScript and CSS assets. This will significantly reduce the extension's footprint, improve load times, and offer a basic level of code obfuscation.
+`manifest.json` carries both browsers' keys so the folder loads unpacked in either; the build writes one manifest per store with only the keys that browser understands. [ROADMAP.md](ROADMAP.md) lists what is not built yet.
 
 ---
 

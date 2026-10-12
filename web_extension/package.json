@@ -1,11 +1,11 @@
 {
   "name": "yt-transcript-summarizer",
-  "version": "10.20.0",
+  "version": "10.23.0",
   "private": true,
   "type": "module",
   "description": "Dev tooling only — the extension itself ships from manifest.json and has no npm dependencies.",
   "scripts": {
-    "test": "node test/timestamps.test.mjs && node test/timestamps-e2e.test.mjs && node test/paste-report.test.mjs && node test/paste-watch.test.mjs && node test/combined-failure.test.mjs && node test/paste-retry.test.mjs && node test/orphan-payload.test.mjs",
+    "test": "node --test \"test/*.test.mjs\"",
     "build": "node tools/build-zip.mjs",
     "build:dry": "node tools/build-zip.mjs --dry-run"
   }

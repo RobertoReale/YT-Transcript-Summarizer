@@ -53,10 +53,12 @@ export const CONFIG = {
   },
 
   // ── Chunking config ─────────────────────────────────────────────────────────
-  // Controls transcript splitting into multiple parts for long videos.
+  // A transcript is sent whole, except in web mode when one message would not
+  // fit the chat composer (maxWebMessageChars below): then it is split just
+  // enough to fit, within these bounds.
   chunking: {
-    defaultParts: 1,      // send the transcript in one go by default
-    maxParts:     10      // ceiling for the split selector
+    maxAutoParts: 20,     // past this the overflow warning takes over
+    minPartChars: 2000    // never cut a short transcript into pointless slivers
   },
 
   // ── Web mode composer character limits ──────────────────────────────────────
@@ -103,17 +105,20 @@ export function timestampNote(lang) {
 //   - Edit the `models` array of the relevant provider.
 //   - Update `defaultModel` if the current default is removed.
 // ─────────────────────────────────────────────────────────────────────────────
+// Last checked against the providers' own model and deprecation pages on
+// 2026-10-12. The model field is an editable combobox, so a stale list never
+// blocks anyone — but the *default* must be a model a brand-new key can call.
 export const PROVIDERS = {
   anthropic: {
     name: 'Anthropic Claude',
     models: [
-      { value: 'claude-opus-4-8',   label: 'claude-opus-4-8 (Recommended)' },
-      { value: 'claude-sonnet-5',   label: 'claude-sonnet-5 (Fast + capable)' },
-      { value: 'claude-haiku-4-5',  label: 'claude-haiku-4-5 (Cheapest)' },
-      { value: 'claude-opus-4-7',   label: 'claude-opus-4-7' },
-      { value: 'claude-sonnet-4-6', label: 'claude-sonnet-4-6' },
+      { value: 'claude-sonnet-5-5', label: 'claude-sonnet-5-5 (Recommended)' },
+      { value: 'claude-opus-5-5',   label: 'claude-opus-5-5 (Most capable Opus)' },
+      { value: 'claude-haiku-5-5',  label: 'claude-haiku-5-5 (Fastest, cheapest)' },
+      { value: 'claude-fable-5-1',  label: 'claude-fable-5-1 (Top tier, premium price)' },
+      { value: 'claude-opus-4-8',   label: 'claude-opus-4-8' },
     ],
-    defaultModel:      'claude-opus-4-8',
+    defaultModel:      'claude-sonnet-5-5',
     supportsThinking:  true,
     hasWebUI:          true,
     apiKeyLabel:       'API Key',
@@ -122,13 +127,12 @@ export const PROVIDERS = {
   openai: {
     name: 'OpenAI',
     models: [
-      { value: 'gpt-4o',       label: 'gpt-4o (Recommended)' },
-      { value: 'gpt-4o-mini',  label: 'gpt-4o-mini (Fast)' },
-      { value: 'o1',           label: 'o1 (Reasoning)' },
-      { value: 'o1-mini',      label: 'o1-mini' },
-      { value: 'gpt-4-turbo',  label: 'gpt-4-turbo' },
+      { value: 'gpt-6.1-sol',  label: 'gpt-6.1-sol (Recommended)' },
+      { value: 'gpt-6-astra',  label: 'gpt-6-astra (Flagship)' },
+      { value: 'gpt-6-luna',   label: 'gpt-6-luna (Fast, cheapest)' },
+      { value: 'gpt-5.6-sol',  label: 'gpt-5.6-sol' },
     ],
-    defaultModel:      'gpt-4o',
+    defaultModel:      'gpt-6.1-sol',
     supportsThinking:  false,
     hasWebUI:          true,
     apiKeyLabel:       'API Key',
@@ -137,12 +141,11 @@ export const PROVIDERS = {
   gemini: {
     name: 'Google Gemini',
     models: [
-      { value: 'gemini-2.5-flash',  label: 'gemini-2.5-flash (Fast & Recommended)' },
-      { value: 'gemini-2.0-flash',  label: 'gemini-2.0-flash' },
-      { value: 'gemini-1.5-pro',    label: 'gemini-1.5-pro' },
-      { value: 'gemini-1.5-flash',  label: 'gemini-1.5-flash' },
+      { value: 'gemini-3.8-flash',      label: 'gemini-3.8-flash (Recommended)' },
+      { value: 'gemini-3.5-flash-lite', label: 'gemini-3.5-flash-lite (Fastest, cheapest)' },
+      { value: 'gemini-3.1-pro-preview', label: 'gemini-3.1-pro-preview' },
     ],
-    defaultModel:      'gemini-2.5-flash',
+    defaultModel:      'gemini-3.8-flash',
     supportsThinking:  false,
     hasWebUI:          true,
     apiKeyLabel:       'API Key (Google AI Studio)',
@@ -151,9 +154,11 @@ export const PROVIDERS = {
   groq: {
     name: 'Groq',
     models: [
-      { value: 'llama-3.3-70b-versatile', label: 'llama-3.3-70b-versatile (Recommended)' }
+      { value: 'openai/gpt-oss-120b', label: 'gpt-oss-120b (Recommended)' },
+      { value: 'openai/gpt-oss-20b',  label: 'gpt-oss-20b (Fastest)' },
+      { value: 'qwen/qwen3.8-27b',    label: 'qwen3.8-27b (Preview)' },
     ],
-    defaultModel:      'llama-3.3-70b-versatile',
+    defaultModel:      'openai/gpt-oss-120b',
     supportsThinking:  false,
     hasWebUI:          false,
     apiKeyLabel:       'API Key',
@@ -162,13 +167,13 @@ export const PROVIDERS = {
   openrouter: {
     name: 'OpenRouter',
     models: [
-      { value: 'anthropic/claude-sonnet-4-6',          label: 'claude-sonnet-4-6' },
-      { value: 'openai/gpt-4o',                        label: 'gpt-4o' },
-      { value: 'google/gemini-2.0-flash-exp',          label: 'gemini-2.0-flash' },
-      { value: 'meta-llama/llama-3.3-70b-instruct',    label: 'llama-3.3-70b' },
-      { value: 'mistralai/mistral-large',              label: 'mistral-large' },
+      { value: 'anthropic/claude-sonnet-5.5', label: 'claude-sonnet-5.5' },
+      { value: 'openai/gpt-6.1-sol',          label: 'gpt-6.1-sol' },
+      { value: 'google/gemini-3.8-flash',     label: 'gemini-3.8-flash' },
+      { value: 'deepseek/deepseek-v4-flash',  label: 'deepseek-v4-flash' },
+      { value: 'openai/gpt-oss-120b',         label: 'gpt-oss-120b' },
     ],
-    defaultModel:      'anthropic/claude-sonnet-4-6',
+    defaultModel:      'anthropic/claude-sonnet-5.5',
     supportsThinking:  false,
     hasWebUI:          false,
     apiKeyLabel:       'API Key',
@@ -184,6 +189,57 @@ export const PROVIDERS = {
     apiKeyPlaceholder: '...',
   },
 };
+
+// Models whose shutdown is confirmed (or already past) on the provider's own
+// deprecation page. A stored model matching one of these would only produce an
+// API error, so it is replaced by the provider's current default at use time.
+const RETIRED_MODELS = {
+  anthropic:  /^claude-(2|3|instant)|^claude-(sonnet|opus)-4-(0|2025)/,
+  openai:     /^(gpt-4o-2024-05-13|gpt-4-turbo|gpt-4\.1-nano|o1|o4-mini|gpt-3\.5)/,
+  gemini:     /^gemini-(1\.|2\.0)/,
+  groq:       /^(llama-3\.[13]-|llama3-|gemma2-|mixtral-|qwen\/qwen3(-32b|\.6-))/,
+  openrouter: /^google\/gemini-(1\.|2\.0)/,
+};
+
+// The defaults older versions shipped. persistSettings saves whatever the model
+// field shows, so a user who never touched it has one of these frozen in
+// storage. Migrated once — after that, a deliberate choice is left alone.
+const OLD_DEFAULTS = {
+  openai:     ['gpt-4o'],
+  gemini:     ['gemini-2.5-flash', 'gemini-2.0-flash'],
+  groq:       ['llama-3.3-70b-versatile'],
+  openrouter: ['anthropic/claude-sonnet-4-6', 'google/gemini-2.0-flash-exp'],
+};
+const MODEL_MIGRATION_VERSION = 1;
+
+/** The model to actually use: the stored one, unless it is empty or retired. */
+export function resolveModel(provider, stored) {
+  const info = PROVIDERS[provider];
+  const m = String(stored || '').trim();
+  if (!info) return m;
+  if (!m) return info.defaultModel;
+  return RETIRED_MODELS[provider]?.test(m) ? info.defaultModel : m;
+}
+
+/** Rewrite retired (and, once, stale default) model ids in storage. */
+export async function migrateStoredModels() {
+  const { models, model, modelMigration = 0 } =
+    await chrome.storage.local.get(['models', 'model', 'modelMigration']);
+  const next = { ...(models || {}) };
+  let changed = false;
+  for (const [provider, m] of Object.entries(next)) {
+    let r = resolveModel(provider, m);
+    if (modelMigration < MODEL_MIGRATION_VERSION && OLD_DEFAULTS[provider]?.includes(m)) {
+      r = PROVIDERS[provider].defaultModel;
+    }
+    if (m && r !== m) { next[provider] = r; changed = true; }
+  }
+  const patch = { modelMigration: MODEL_MIGRATION_VERSION };
+  if (changed) patch.models = next;
+  // Legacy single-provider key from the Anthropic-only days.
+  if (model && resolveModel('anthropic', model) !== model) patch.model = resolveModel('anthropic', model);
+  await chrome.storage.local.set(patch);
+}
 
 // ── Prompts ────────────────────────────────────────────────────────────────────
 // HOW TO ADD A LANGUAGE:

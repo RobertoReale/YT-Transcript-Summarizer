@@ -1,5 +1,6 @@
 // ── LLM API Calls ─────────────────────────────────────────────────────────────
 import { CONFIG } from './config.js';
+import { streamLLM } from './llm-stream.js';
 const CHUNK_NOTES = {
   en: {
     part: 'Part',
@@ -40,35 +41,6 @@ const CHUNK_NOTES = {
 };
 
 const chunkNotes = (lang) => CHUNK_NOTES[lang] || CHUNK_NOTES.en;
-async function fetchLLM(url, headers, bodyObj, providerName) {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 180000); // 3 min timeout
-
-  let resp;
-  try {
-    resp = await fetch(url, {
-      method: 'POST',
-      signal: ctrl.signal,
-      headers: headers,
-      body: JSON.stringify(bodyObj)
-    });
-  } catch (e) {
-    if (e.name === 'AbortError') throw new Error(`Timeout ${providerName} API (>3 min)`);
-    throw e;
-  } finally {
-    clearTimeout(timer);
-  }
-
-  if (!resp.ok) {
-    const errBody = await resp.text().catch(() => '');
-    throw new Error(`${providerName} API error ${resp.status}: ${errBody.slice(0, 300)}`);
-  }
-  try {
-    return await resp.json();
-  } catch (e) {
-    throw new Error(`${providerName} returned a malformed (non-JSON) response`);
-  }
-}
 
 /**
  * Clamp the transcript to what the selected provider can take. The old flat
@@ -104,6 +76,9 @@ export function splitTranscript(text, parts) {
 
   while (pos < content.length) {
     let next = pos + size;
+    // The last slice takes whatever is left: snapping cuts to line ends can
+    // leave a sliver past n·size, which used to become an extra (n+1)th part.
+    if (slices.length === parts - 1) next = content.length;
     if (next < content.length) {
       let n = Math.max(content.lastIndexOf('\n', next), content.lastIndexOf('. ', next));
       if (n > pos + size * 0.7) {
@@ -123,33 +98,39 @@ export function splitTranscript(text, parts) {
 }
 
 /**
- * How many parts this transcript is actually split into.
- *
- * The number the user picked is adjusted down when the transcript is too short
- * to fill that many parts, and up when a single part would not fit the target's
- * per-message limit (`settings.maxMessageChars`, web mode only — a composer that
- * truncates silently makes the user's choice actively harmful).
- * @returns {number} 1 when the transcript should be sent in a single request
+ * The number of parts the USER asked for. The manual split selector was removed
+ * (modern models take a whole transcript in one request), so this is always 1;
+ * it stays a function so the "asked vs. forced" distinction below keeps a name.
  */
-/**
- * The number of parts the USER asked for, clamped to the user-facing ceiling.
- *
- * Deliberately separate from what actually gets sent: an automatic raise (a
- * composer that would truncate) and a deliberate split mean opposite things
- * downstream — for the merge, and for what the status line owes the user.
- */
-export function requestedChunkCount(settings) {
+export function requestedChunkCount() {
   return 1;
 }
 
+/**
+ * How many parts this transcript is actually split into: one, unless a single
+ * message would not fit the chat composer's own limit (`settings.maxMessageChars`,
+ * web mode only — a composer that truncates silently would drop the tail).
+ * @returns {number} 1 when the transcript should be sent in a single request
+ */
 export function plannedChunkCount(transcript, settings) {
   const asked = requestedChunkCount(settings);
-  if ((settings.mode || 'web') !== 'web') return asked;
+  const len = String(transcript ?? '').length;
 
-  const cap = settings.maxMessageChars || 0;
-  if (!cap || transcript.length <= cap) return asked;
+  // Each message also carries the prompt and the "part i of n" note, so the
+  // budget for transcript text is smaller than the raw cap — sizing on the
+  // transcript alone let every part overrun the composer by the prompt's length.
+  // `splitToFit` gates this: when nothing will paste the follow-up parts, only
+  // part 1 would ever be sent, so splitting would drop text rather than rescue it.
+  const cap = settings?.splitToFit ? (Math.floor(settings?.maxMessageChars) || 0) : 0;
+  const overhead = String(settings?.prompt ?? '').length + CHUNK_NOTE_CHARS;
+  const needed = (cap > overhead && len > 0) ? Math.ceil(len / (cap - overhead)) : 1;
 
-  return Math.max(asked, Math.ceil(transcript.length / cap));
+  // Past maxAutoParts the overflow warning takes over: a run of dozens of
+  // messages, each waiting for a full reply, is not a rescue either.
+  const wanted = Math.min(CONFIG.chunking.maxAutoParts, Math.max(asked, needed));
+  if (wanted === 1) return 1;
+  const fits = Math.floor(len / CONFIG.chunking.minPartChars);
+  return Math.max(1, Math.min(wanted, fits));
 }
 
 // Worst-case length of the chunk instruction glued to each part, plus the two
@@ -223,9 +204,18 @@ export function buildChunkMessages(transcript, settings) {
     return { parts, chunks: 1, asked, autoSplit: false, merged: false, mergePlan: null, overflow: overflowOf(parts) };
   }
 
-  const slices = splitTranscript(transcript, n);
-  const count = slices.length;
-  const parts = slices.map((s, i) => `${chunkPrompt(settings.prompt, i + 1, count, lang)}\n\n---\n\n${s}`);
+  // plannedChunkCount sizes on averages; cuts snapped to line ends can still
+  // leave one slice over the cap. Add a part until every message fits, within
+  // the same ceiling the planner uses.
+  const build = (k) => {
+    const sl = splitTranscript(transcript, k);
+    return sl.map((s, i) => `${chunkPrompt(settings.prompt, i + 1, sl.length, lang)}\n\n---\n\n${s}`);
+  };
+  let parts = build(n);
+  for (let k = n + 1; settings?.splitToFit && overflowOf(parts) > 0 && k <= CONFIG.chunking.maxAutoParts; k++) {
+    parts = build(k);
+  }
+  const count = parts.length;
   // The split was forced by the composer's own limit, not chosen. The caller has
   // to be able to say which of the two happened: "✂️ 7 parts" after the user
   // picked "1 part" reads as a bug unless the reason travels with it.
@@ -241,155 +231,33 @@ export function buildChunkMessages(transcript, settings) {
   };
 }
 
-function requireKey(apiKey, providerName) {
-  if (!apiKey || !String(apiKey).trim()) {
-    throw new Error(`${providerName}: no API key configured (Advanced Settings ⚙️).`);
-  }
-}
-
 /**
- * Dispatcher: routes to the right provider.
- * @returns {Promise<{summary: string, truncated: boolean, kept: number, total: number}>}
+ * One summary from the configured provider, streamed and accumulated.
+ *
+ * `onProgress(charsSoFar)` fires as text arrives. In the service worker it is
+ * what keeps the batch alive and visible: each status write is an extension API
+ * call, which resets MV3's 30 s idle timer during a multi-minute generation.
+ *
+ * @returns {Promise<{summary: string, truncated: boolean, kept: number, total: number, outputTruncated: boolean}>}
  */
-export async function callLLM(transcript, settings) {
+export async function callLLM(transcript, settings, { onProgress, signal } = {}) {
   const provider = settings.provider || 'anthropic';
   const apiKey = (settings.apiKeys && settings.apiKeys[provider]) || settings.apiKey || '';
-  const s = { ...settings, apiKey };
   const trimmed = trimTranscript(String(transcript ?? ''), provider);
 
-  let summary;
-  switch (provider) {
-    case 'openai':
-      summary = await callOpenAICompat(trimmed.text, s, 'https://api.openai.com/v1/chat/completions', 'OpenAI');
-      break;
-    case 'gemini':
-      summary = await callGemini(trimmed.text, s);
-      break;
-    case 'groq':
-      summary = await callOpenAICompat(trimmed.text, s, 'https://api.groq.com/openai/v1/chat/completions', 'Groq');
-      break;
-    case 'openrouter':
-      summary = await callOpenAICompat(trimmed.text, s, 'https://openrouter.ai/api/v1/chat/completions', 'OpenRouter');
-      break;
-    case 'custom': {
-      const endpoint = s.customEndpointUrl;
-      if (!endpoint) throw new Error('Custom endpoint URL not configured. Set it in Advanced Settings.');
-      summary = await callOpenAICompat(trimmed.text, s, endpoint, 'Custom');
-      break;
-    }
-    default:
-      summary = await callAnthropic(trimmed.text, s);
-  }
+  let chars = 0;
+  const { text, truncated: outputTruncated } = await streamLLM(
+    `${settings.prompt}\n\n---\n\n${trimmed.text}`,
+    {
+      provider,
+      model: settings.model,
+      apiKey,
+      endpoint: settings.customEndpointUrl,
+      useThinking: !!settings.useThinking,
+    },
+    (chunk) => { chars += chunk.length; onProgress?.(chars); },
+    { signal }
+  );
 
-  return { summary, truncated: trimmed.truncated, kept: trimmed.kept, total: trimmed.total };
-}
-
-// Anthropic Claude
-async function callAnthropic(trimmed, settings) {
-  requireKey(settings.apiKey, 'Anthropic');
-
-  const model = settings.model || '';
-  // Claude 4.6+ takes adaptive thinking; the old fixed `budget_tokens` form was
-  // removed on Opus 4.7/4.8, Sonnet 5 and Fable 5 and now returns HTTP 400.
-  const ADAPTIVE = /^claude-(fable-5|mythos-5|opus-4-(6|7|8)|sonnet-(5|4-6))/;
-  const LEGACY_THINKING = /^claude-(3-7-sonnet|opus-4-5|sonnet-4-5|haiku-4-5)/;
-  const useThinking = !!settings.useThinking && (ADAPTIVE.test(model) || LEGACY_THINKING.test(model));
-  const maxTokens = useThinking ? 16000 : 8192;
-
-  const bodyObj = {
-    model,
-    max_tokens: maxTokens,
-    messages: [{ role: 'user', content: `${settings.prompt}\n\n---\n\n${trimmed}` }]
-  };
-  if (useThinking) {
-    if (ADAPTIVE.test(model)) {
-      bodyObj.thinking = { type: 'adaptive' };
-      bodyObj.output_config = { effort: 'high' };
-    } else {
-      bodyObj.thinking = { type: 'enabled', budget_tokens: 4096 };
-    }
-  }
-
-  const headers = {
-    'Content-Type': 'application/json',
-    'x-api-key': settings.apiKey,
-    'anthropic-version': '2023-06-01',
-    'anthropic-dangerous-direct-browser-access': 'true'
-  };
-
-  const data = await fetchLLM('https://api.anthropic.com/v1/messages', headers, bodyObj, 'Anthropic');
-  // `data.content.filter(...)` used to throw a bare "Cannot read properties of
-  // undefined" whenever the shape was unexpected (HTTP 200 with an error body,
-  // refusal, empty completion).
-  const blocks = Array.isArray(data?.content) ? data.content : [];
-  const text = blocks.filter(b => b?.type === 'text').map(b => b.text || '').join('');
-  if (!text.trim()) {
-    throw new Error(`Anthropic returned an empty summary (stop_reason: ${data?.stop_reason || 'unknown'})`);
-  }
-  return text;
-}
-
-// OpenAI-compatible (OpenAI, OpenRouter, Custom)
-async function callOpenAICompat(trimmed, settings, endpoint, providerName) {
-  if (providerName !== 'Custom') requireKey(settings.apiKey, providerName);
-  const model = settings.model;
-  if (!model) throw new Error(`${providerName}: no model selected.`);
-
-  const bodyObj = {
-    model,
-    messages: [{ role: 'user', content: `${settings.prompt}\n\n---\n\n${trimmed}` }]
-  };
-
-  // o1/o3/gpt-5 style reasoning models use max_completion_tokens; others max_tokens
-  if (/^(o\d|gpt-5)/.test(model)) {
-    bodyObj.max_completion_tokens = 8192;
-  } else {
-    bodyObj.max_tokens = 8192;
-  }
-
-  const headers = { 'Content-Type': 'application/json' };
-  if (settings.apiKey) headers['Authorization'] = `Bearer ${settings.apiKey}`;
-
-  const data = await fetchLLM(endpoint, headers, bodyObj, providerName);
-  const choice = data?.choices?.[0];
-  const text = choice?.message?.content ?? '';
-  if (!String(text).trim()) {
-    const reason = choice?.finish_reason || data?.error?.message || 'unknown';
-    throw new Error(`${providerName} returned an empty summary (finish_reason: ${reason})`);
-  }
-  return text;
-}
-
-// Google Gemini
-async function callGemini(trimmed, settings) {
-  requireKey(settings.apiKey, 'Gemini');
-  const model = settings.model || 'gemini-2.0-flash';
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
-
-  const bodyObj = {
-    contents: [{
-      role: 'user',
-      parts: [{ text: `${settings.prompt}\n\n---\n\n${trimmed}` }]
-    }],
-    generationConfig: { maxOutputTokens: 16384 }
-  };
-
-  // The key travels in a header rather than the query string so it cannot leak
-  // through referrers, proxy logs or an error message echoing the URL.
-  const headers = { 'Content-Type': 'application/json', 'x-goog-api-key': settings.apiKey };
-
-  const data = await fetchLLM(endpoint, headers, bodyObj, 'Gemini');
-  const candidate = data?.candidates?.[0];
-  const text = (candidate?.content?.parts || []).map(p => p?.text || '').join('');
-  if (!text.trim()) {
-    // On 2.5-family models the thinking tokens are billed against
-    // maxOutputTokens, so a small budget yields MAX_TOKENS with no parts at all.
-    const reason = candidate?.finishReason || data?.promptFeedback?.blockReason || 'unknown';
-    throw new Error(
-      reason === 'MAX_TOKENS'
-        ? 'Gemini hit the output limit before writing anything (thinking tokens consumed the budget) — try a shorter summary or another model.'
-        : `Gemini returned an empty summary (finishReason: ${reason})`
-    );
-  }
-  return text;
+  return { summary: text, truncated: trimmed.truncated, kept: trimmed.kept, total: trimmed.total, outputTruncated };
 }

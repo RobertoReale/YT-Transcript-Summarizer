@@ -1,4 +1,4 @@
-import { CONFIG, PROVIDERS, getPreset, isPreset, initPrompts } from './modules/config.js';
+import { PROVIDERS, getPreset, isPreset, initPrompts, resolveModel } from './modules/config.js';
 import { showMsg, showBanner } from './modules/ui-utils.js';
 import { state } from './modules/popup-state.js';
 import { renderHistory, clearHistory } from './modules/popup-history.js';
@@ -208,6 +208,17 @@ async function init() {
   }
   
   document.getElementById('open-sidepanel-btn').addEventListener('click', () => {
+    // Firefox has no chrome.sidePanel: the same page is its sidebar_action.
+    // toggle() must run synchronously inside the click to count as a gesture.
+    if (!chrome.sidePanel) {
+      if (globalThis.browser?.sidebarAction?.toggle) {
+        globalThis.browser.sidebarAction.toggle();
+        window.close();
+      } else {
+        showMsg('The side panel is not supported by this browser.', 'warn');
+      }
+      return;
+    }
     if (isSidePanelOpen) {
       // Toggle off by disabling and re-enabling
       chrome.sidePanel.setOptions({ enabled: false }, () => {
@@ -815,7 +826,7 @@ async function startBatch() {
 
   const info          = PROVIDERS[provider] || PROVIDERS.anthropic;
   const currentApiKey = apiKeys[provider] || '';
-  const currentModel  = models[provider] || info.defaultModel;
+  const currentModel  = resolveModel(provider, models[provider]);
   const currentMode   = mode || 'web';
 
   if (currentMode === 'api' && !currentApiKey && provider !== 'custom') {

@@ -38,6 +38,10 @@ export async function fetchCaptionTrack(track, lengthSeconds, doFetch, log = () 
     .replace(/([&?])fmt=[^&]*/g, '$1')
     .replace(/\?&/, '?')
     .replace(/[&?]$/, '');
+  // `exp=xpe`/`xpv` marks a track inside YouTube's PO-token rollout: its body
+  // comes back empty without a token, whatever the format. Say so up front, so
+  // three "empty body" lines are not mistaken for an expired URL.
+  if (/[?&]exp=[^&]*xp[ev]/.test(base)) log('caption URL requires a PO token (exp=xpe) — expect an empty body');
   let best = null;
 
   for (const suffix of CAPTION_FORMATS) {
@@ -46,6 +50,9 @@ export async function fetchCaptionTrack(track, lengthSeconds, doFetch, log = () 
       body = await doFetch(base + suffix);
     } catch (e) {
       log(`fmt "${suffix || 'default'}": fetch error: ${e.message}`);
+      // Rate-limited: the other formats hit the same endpoint, and hammering
+      // it only extends the block.
+      if (/HTTP 429/.test(e.message)) break;
       continue;
     }
     if (!body || body.length < 10) {
@@ -68,6 +75,12 @@ export async function fetchCaptionTrack(track, lengthSeconds, doFetch, log = () 
 
   if (best) log(`No complete format; keeping the longest partial one (coverage ${best.coverage})`);
   return best;
+}
+
+// A 429 here is YouTube rate-limiting this IP, not a missing PO token — the two
+// call for opposite reactions (wait vs. switch strategy), so name it.
+function httpWhy(status) {
+  return status === 429 ? 'HTTP 429 — YouTube is rate-limiting this IP, retry in a few minutes' : `HTTP ${status}`;
 }
 
 // Requests below rely on rules.json rewriting the Origin/Referer headers to
@@ -116,7 +129,8 @@ export async function fetchViaAndroidPlayer(videoId, log, transcriptLang = 'en',
 
       const got = await fetchCaptionTrack(track, lengthSeconds, async (url) => {
         const tResp = await fetchWithTimeout(url, {}, 12000);
-        return tResp.ok ? await tResp.text() : null;
+        if (!tResp.ok) throw new Error(httpWhy(tResp.status));
+        return await tResp.text();
       }, (m) => log(`${clientInfo.clientName}: ${m}`), options);
 
       if (got) {
@@ -178,7 +192,8 @@ export async function fetchViaGetTranscript(videoId, log, transcriptLang = 'en',
         log(`Page extraction: using track lang="${track.languageCode}", kind="${track.kind || 'standard'}"`);
         const got = await fetchCaptionTrack(track, lengthSeconds, async (url) => {
           const tResp = await fetchWithTimeout(url, { credentials: 'include' }, 12000);
-          return tResp.ok ? await tResp.text() : null;
+          if (!tResp.ok) throw new Error(httpWhy(tResp.status));
+          return await tResp.text();
         }, (m) => log(`Page extraction: ${m}`), options);
 
         if (got) {
@@ -484,6 +499,7 @@ async function runTabScript(tabId, videoId, transcriptLang, log, options = {}) {
       });
       const r = out?.[0]?.result;
       if (r?.error) throw new Error(r.error);
+      if (r?.status && r.status >= 400) throw new Error(httpWhy(r.status));
       return r?.text ?? null;
     }, (m) => log(`  ${m}`), options);
 

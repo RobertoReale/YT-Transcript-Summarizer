@@ -1,37 +1,130 @@
 {
-  "extName": { "message": "YT Summarizer" },
-  "extDesc": { "message": "Summarize YouTube videos with Claude, OpenAI, Gemini and more — reliable transcript extraction via InnerTube API." },
-  
-  "optionsTitle": { "message": "Settings" },
-  "apiSettingsTitle": { "message": "API Configuration" },
-  "apiSettingsDesc": { "message": "Configure your preferred AI provider for generating summaries in the side panel." },
-  "providerLabel": { "message": "AI Provider" },
-  "apiKeyLabel": { "message": "API Key" },
-  
-  "providerGemini": { "message": "Google Gemini (Recommended/Free)" },
-  "providerAnthropic": { "message": "Anthropic Claude" },
-  "providerOpenai": { "message": "OpenAI" },
-  "providerGroq": { "message": "Groq" },
-  "providerOpenrouter": { "message": "OpenRouter" },
-  "providerCustom": { "message": "Custom" },
-  
-  "helpGemini": { "message": "Get free key on Google AI Studio ↗" },
-  "helpGroq": { "message": "Get free key on GroqCloud ↗" },
-  "helpAnthropic": { "message": "Get key on Anthropic Console ↗" },
-  "helpOpenai": { "message": "Get key on OpenAI Platform ↗" },
-  
-  "btnSave": { "message": "Save Settings" },
-  "saveSuccess": { "message": "Settings saved!" },
-  
-  "sidepanelMissingKey": { "message": "👋 To summarize in the Side Panel, please enter an API key (Google Gemini is recommended and 100% free) or use the free Web Mode from the popup." },
-  
-  "sidepanelTitle": { "message": "Summarizer" },
-  "noVideoDetected": { "message": "No video detected" },
-  "openVideoToSummarize": { "message": "Open a YouTube video to summarize" },
-  "generatingSummary": { "message": "Generating summary..." },
-  "btnSummarize": { "message": "Summarize" },
-  "btnRegenerate": { "message": "🔄 Regenerate" },
-  "btnStop": { "message": "Stop" },
-  "btnCopy": { "message": "📋 Copy" },
-  "copied": { "message": "✅ Copied!" }
+  "extName": {
+    "message": "YT Summarizer"
+  },
+  "extDesc": {
+    "message": "Summarize YouTube videos with Claude, OpenAI, Gemini and more — reliable transcript extraction via InnerTube API."
+  },
+  "optionsTitle": {
+    "message": "Settings"
+  },
+  "apiSettingsTitle": {
+    "message": "API Configuration"
+  },
+  "apiSettingsDesc": {
+    "message": "Configure your preferred AI provider for generating summaries in the side panel."
+  },
+  "providerLabel": {
+    "message": "AI Provider"
+  },
+  "apiKeyLabel": {
+    "message": "API Key"
+  },
+  "providerGemini": {
+    "message": "Google Gemini (free tier)"
+  },
+  "providerAnthropic": {
+    "message": "Anthropic Claude"
+  },
+  "providerOpenai": {
+    "message": "OpenAI"
+  },
+  "providerGroq": {
+    "message": "Groq"
+  },
+  "providerOpenrouter": {
+    "message": "OpenRouter"
+  },
+  "providerCustom": {
+    "message": "Custom"
+  },
+  "helpGemini": {
+    "message": "Get free key on Google AI Studio ↗"
+  },
+  "helpGroq": {
+    "message": "Get free key on GroqCloud ↗"
+  },
+  "helpAnthropic": {
+    "message": "Get key on Anthropic Console ↗"
+  },
+  "helpOpenai": {
+    "message": "Get key on OpenAI Platform ↗"
+  },
+  "btnSave": {
+    "message": "Save Settings"
+  },
+  "saveSuccess": {
+    "message": "Settings saved!"
+  },
+  "sidepanelMissingKey": {
+    "message": "👋 To summarize here, enter an API key (Google Gemini has a free tier) — or use the free Web mode from the popup."
+  },
+  "sidepanelTitle": {
+    "message": "Summarizer"
+  },
+  "noVideoDetected": {
+    "message": "No video detected"
+  },
+  "openVideoToSummarize": {
+    "message": "Open a YouTube video to summarize"
+  },
+  "generatingSummary": {
+    "message": "Generating summary…"
+  },
+  "btnSummarize": {
+    "message": "Summarize"
+  },
+  "btnRegenerate": {
+    "message": "🔄 Regenerate"
+  },
+  "btnStop": {
+    "message": "Stop"
+  },
+  "btnCopy": {
+    "message": "📋 Copy"
+  },
+  "copied": {
+    "message": "✅ Copied!"
+  },
+  "modelLabel": {
+    "message": "Model"
+  },
+  "endpointLabel": {
+    "message": "Endpoint URL (OpenAI-compatible)"
+  },
+  "sidepanelSettingsNote": {
+    "message": "Language, length and prompt are shared with the popup."
+  },
+  "btnDownload": {
+    "message": "⬇ .md"
+  },
+  "fetchingTranscript": {
+    "message": "Fetching transcript…"
+  },
+  "noTranscript": {
+    "message": "This video has no captions, so there is no transcript to summarize."
+  },
+  "outputTruncated": {
+    "message": "⚠️ The model hit its output limit — the summary ends abruptly."
+  },
+  "summaryStopped": {
+    "message": "⏹ Stopped — this summary is incomplete."
+  },
+  "errorPrefix": {
+    "message": "Error"
+  },
+  "helpOpenrouter": {
+    "message": "Get a key on OpenRouter ↗"
+  },
+  "sidepanelPermissionDenied": {
+    "message": "Permission for the custom endpoint was denied."
+  },
+  "partialTranscript": {
+    "message": "⚠️ The captions only cover about $COVERAGE$ of the video.",
+    "placeholders": {
+      "coverage": {
+        "content": "$1"
+      }
+    }
+  }
 }

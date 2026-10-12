@@ -1,7 +1,8 @@
 // ── background.js — Service Worker ───────────────────────────────────────────
 import { callLLM, splitTranscript, plannedChunkCount, chunkPrompt, chunkHeading, mergeApiPrompt, buildChunkMessages } from './modules/llm-api.js';
+import { isRetriable } from './modules/llm-stream.js';
 import { fetchViaAndroidPlayer, fetchViaGetTranscript, tabFetchTranscript, tabBrowseContinuations } from './modules/youtube-api.js';
-import { CONFIG, timestampNote } from './modules/config.js';
+import { CONFIG, timestampNote, migrateStoredModels } from './modules/config.js';
 import { hasTimestamps } from './modules/transcript-parse.js';
 import { sleep, fetchWithTimeout } from './modules/utils.js';
 import { downloadText, safeFilename, ensureOffscreenDocument } from './modules/downloads.js';
@@ -83,31 +84,36 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return;
   }
   
-  if (msg.type === 'OPEN_SIDEPANEL') {
-    chrome.windows.getCurrent({ populate: false }, (win) => {
-      chrome.sidePanel.open({ windowId: win.id });
-    });
-    return;
-  }
-
+  // The side panel asks for one transcript. Its language comes with the request:
+  // this used to read the `settings` snapshot of the last *batch* run, so a user
+  // who had never run a batch always got English, whatever they had chosen.
   if (msg.type === 'GET_TRANSCRIPT') {
     (async () => {
       try {
-        const { settings = {} } = await chrome.storage.local.get('settings');
-        const transcriptLang = settings.transcriptLang || 'en';
-        const options = { timeStart: settings.timeStart, timeEnd: settings.timeEnd };
-        const result = await acquireTranscript(msg.videoId, transcriptLang, (logMsg) => console.log(logMsg), options);
-        if (result && result.transcript) {
-          sendResponse({ transcript: result.transcript });
+        const transcriptLang = msg.lang || 'en';
+        const log = [];
+        const result = await acquireTranscript(msg.videoId, transcriptLang, (m) => log.push(m));
+        if (result?.transcript) {
+          sendResponse({
+            transcript: result.transcript, title: result.title,
+            lang: result.lang, complete: result.complete !== false, coverage: result.coverage
+          });
         } else {
-          sendResponse({ error: 'No transcript available' });
+          console.warn(`[YT Summarizer] No transcript for ${msg.videoId}\n${log.join('\n')}`);
+          sendResponse({ error: 'noTranscript' });
         }
       } catch (err) {
-        sendResponse({ error: err.message });
+        sendResponse({ error: err.message || String(err) });
       }
     })();
     return true;
   }
+});
+
+// Model ids frozen into storage by an older version (persistSettings saves the
+// default it showed) would otherwise keep pointing at retired models forever.
+chrome.runtime.onInstalled?.addListener(({ reason }) => {
+  if (reason === 'update' || reason === 'install') migrateStoredModels().catch(() => {});
 });
 
 chrome.runtime.onConnect.addListener((port) => {
@@ -268,7 +274,7 @@ async function finalizeBatch() {
     try {
       chrome.notifications.create({
         type: 'basic',
-        iconUrl: chrome.runtime.getURL('logo.png'),
+        iconUrl: chrome.runtime.getURL('icons/icon-128.png'),
         title: 'YT Summarizer',
         message: parts.join(', ')
       });
@@ -284,10 +290,17 @@ function videoIdOf(url) {
 
 // A partial transcript is worse than a late one: keep looking, and only fall
 // back to the best partial result once every strategy has been tried.
+//
+// Order matters for speed. The InnerTube ANDROID/iOS player clients answer in
+// ~1 s with caption URLs that need no PO token; the watch-page route downloads
+// ~1.4 MB of HTML and, since YouTube started requiring a PO token on the web
+// client's caption URLs, comes back empty almost every time (verified 2026-10).
+// It stays as a second chance — it carries the user's cookies — ahead of the
+// slow, visible tab fallback.
 async function acquireTranscript(videoId, transcriptLang, log, options = {}) {
   const strategies = [
-    ['S1-PageScrape', fetchViaGetTranscript],
-    ['S2-Android', fetchViaAndroidPlayer],
+    ['S1-Android', fetchViaAndroidPlayer],
+    ['S2-PageScrape', fetchViaGetTranscript],
     ['S3-Tab', tabFetchTranscript]
   ];
 
@@ -479,6 +492,9 @@ async function processJob(job, settings) {
     }
     if (llm.truncated) {
       notes.push(`⚠️ Transcript truncated to ${Math.round(llm.kept / 1000)}k of ${Math.round(llm.total / 1000)}k characters to fit the model's context — the summary does not cover the end of the video.`);
+    }
+    if (llm.outputTruncated) {
+      notes.push('⚠️ The model hit its output limit — the summary ends abruptly.');
     }
     if (llm.chunks > 1) {
       notes.push(llm.merged
@@ -733,7 +749,7 @@ async function handlePasteReport(msg) {
     try {
       chrome.notifications.create({
         type: 'basic',
-        iconUrl: chrome.runtime.getURL('logo.png'),
+        iconUrl: chrome.runtime.getURL('icons/icon-128.png'),
         title: 'YT Summarizer',
         message: text
       });
@@ -790,7 +806,10 @@ function webChunkSettings(base, provider, autoSubmit) {
   return {
     ...base,
     maxMessageChars: cap,
-    splitToFit: !!autoSubmit
+    // Splitting only rescues text if every part will actually be delivered:
+    // either we may press Send (follow-ups in the same chat), or each part
+    // gets its own tab and is pasted there ("separate" mode).
+    splitToFit: !!autoSubmit || (base.chunkMode === 'separate' && !!base.autoPaste)
   };
 }
 
@@ -808,7 +827,7 @@ function webChunkSettings(base, provider, autoSubmit) {
 async function summarizeTranscript(transcript, settings, jobId, appendLog, label = '🤖') {
   const chunks = plannedChunkCount(transcript, settings);
   if (chunks === 1) {
-    const llm = await callLLMWithRetries(transcript, settings, jobId, appendLog);
+    const llm = await callLLMWithRetries(transcript, settings, jobId, appendLog, label);
     return { ...llm, chunks: 1, merged: false };
   }
 
@@ -818,14 +837,15 @@ async function summarizeTranscript(transcript, settings, jobId, appendLog, label
   appendLog(`\n✂️ Split into ${n} parts (${parts.map(p => Math.round(p.length / 1000) + 'k').join(' + ')} chars)\n`);
 
   const pieces = [];
-  let truncated = false, kept = 0, total = 0;
+  let truncated = false, outputTruncated = false, kept = 0, total = 0;
 
   for (let i = 0; i < n; i++) {
     if (await batchCancelled()) throw new Error('Interrupted by user');
     await updateJobStatus(jobId, 'active', `${label} Part ${i + 1}/${n} — ${(parts[i].length / 1000).toFixed(1)}k chars...`);
-    const llm = await callLLMWithRetries(parts[i], { ...settings, prompt: chunkPrompt(settings.prompt, i + 1, n, lang) }, jobId, appendLog);
+    const llm = await callLLMWithRetries(parts[i], { ...settings, prompt: chunkPrompt(settings.prompt, i + 1, n, lang) }, jobId, appendLog, `${label} Part ${i + 1}/${n}`);
     pieces.push(`${chunkHeading(i + 1, n, lang)}\n\n${llm.summary.trim()}`);
     truncated = truncated || llm.truncated;
+    outputTruncated = outputTruncated || llm.outputTruncated;
     kept += llm.kept;
     total += llm.total;
     // A short pause between parts: N back-to-back calls on the same key is the
@@ -839,32 +859,39 @@ async function summarizeTranscript(transcript, settings, jobId, appendLog, label
   // is no reason to throw away N successful calls — keep the joined parts.
   if (await batchCancelled()) throw new Error('Interrupted by user');
   if (settings.chunkMerge === false) {
-    return { summary: joined, truncated, kept, total, chunks: n, merged: false };
+    return { summary: joined, truncated, outputTruncated, kept, total, chunks: n, merged: false };
   }
   await updateJobStatus(jobId, 'active', `${label} Merging ${n} parts...`);
   try {
     if (await cancellableSleep(1500)) throw new Error('Interrupted by user');
-    const merge = await callLLMWithRetries(joined, { ...settings, prompt: mergeApiPrompt(settings.prompt, n, lang) }, jobId, appendLog);
-    return { summary: merge.summary, truncated, kept, total, chunks: n, merged: true };
+    const merge = await callLLMWithRetries(joined, { ...settings, prompt: mergeApiPrompt(settings.prompt, n, lang) }, jobId, appendLog, `${label} Merge`);
+    return { summary: merge.summary, truncated, outputTruncated: outputTruncated || merge.outputTruncated, kept, total, chunks: n, merged: true };
   } catch (e) {
     if (/Interrupted by user/.test(e.message || '')) throw e;
     appendLog(`\n⚠️ Merge pass failed (${e.message}) — keeping the ${n} partial summaries.\n`);
-    return { summary: joined, truncated, kept, total, chunks: n, merged: false, mergeError: e.message };
+    return { summary: joined, truncated, outputTruncated, kept, total, chunks: n, merged: false, mergeError: e.message };
   }
 }
 
-async function callLLMWithRetries(transcript, settings, jobId, appendLog) {
+async function callLLMWithRetries(transcript, settings, jobId, appendLog, label = '🤖') {
   const maxRetries = 3;
   const baseWaitSec = 60;
   let lastErr = null;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      return await callLLM(transcript, settings);
+      // Throttled progress: enough to show the summary growing (and to keep the
+      // worker awake through a long generation), not a storage write per token.
+      let lastShown = 0;
+      const onProgress = (chars) => {
+        const now = Date.now();
+        if (now - lastShown < 2000) return;
+        lastShown = now;
+        updateJobStatus(jobId, 'active', `${label} ✍️ writing summary… ${(chars / 1000).toFixed(1)}k chars`);
+      };
+      return await callLLM(transcript, settings, { onProgress });
     } catch (llmErr) {
-      const m = llmErr.message || String(llmErr);
-      const retriable = m.includes('429') || m.includes('Too Many Requests') || m.includes('overloaded') || m.includes('503');
-      if (retriable && attempt < maxRetries) {
+      if (isRetriable(llmErr) && attempt < maxRetries) {
         const waitSec = baseWaitSec * Math.pow(2, attempt);
         appendLog(`\n⚠️ Rate limit (attempt ${attempt + 1}/${maxRetries}), waiting ${waitSec}s...\n`);
         for (let rem = waitSec; rem > 0; rem--) {
@@ -889,7 +916,11 @@ async function fetchTranscriptForJob(job, settings) {
   if (!videoId) throw new Error('Unable to extract video ID from URL.');
 
   const transcriptLang = job.lang || settings.transcriptLang || 'en';
-  const result = await acquireTranscript(videoId, transcriptLang, () => {});
+  const options = {
+    timeStart: job.timeStart ?? settings.timeStart,
+    timeEnd: job.timeEnd ?? settings.timeEnd
+  };
+  const result = await acquireTranscript(videoId, transcriptLang, () => {}, options);
 
   if (!result?.transcript) {
     const e = new Error('No transcript/captions available for this video.');

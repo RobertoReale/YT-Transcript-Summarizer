@@ -1,37 +1,130 @@
 {
-  "extName": { "message": "YT Summarizer" },
-  "extDesc": { "message": "Riassumi video YouTube con Claude, OpenAI, Gemini e altri. Estrazione affidabile dei sottotitoli tramite API InnerTube." },
-  
-  "optionsTitle": { "message": "Impostazioni" },
-  "apiSettingsTitle": { "message": "Configurazione API" },
-  "apiSettingsDesc": { "message": "Configura il tuo provider AI preferito per generare riassunti nel pannello laterale." },
-  "providerLabel": { "message": "Provider AI" },
-  "apiKeyLabel": { "message": "Chiave API" },
-  
-  "providerGemini": { "message": "Google Gemini (Consigliato/Gratis)" },
-  "providerAnthropic": { "message": "Anthropic Claude" },
-  "providerOpenai": { "message": "OpenAI" },
-  "providerGroq": { "message": "Groq" },
-  "providerOpenrouter": { "message": "OpenRouter" },
-  "providerCustom": { "message": "Personalizzato" },
-  
-  "helpGemini": { "message": "Ottieni chiave gratis su Google AI Studio ↗" },
-  "helpGroq": { "message": "Ottieni chiave gratis su GroqCloud ↗" },
-  "helpAnthropic": { "message": "Ottieni chiave su Anthropic Console ↗" },
-  "helpOpenai": { "message": "Ottieni chiave su OpenAI Platform ↗" },
-  
-  "btnSave": { "message": "Salva Impostazioni" },
-  "saveSuccess": { "message": "Impostazioni salvate!" },
-  
-  "sidepanelMissingKey": { "message": "👋 Per riassumere nel Side Panel inserisci una chiave API (consigliata Google Gemini, 100% gratuita) oppure usa la modalità Web gratuita dal popup." },
-  
-  "sidepanelTitle": { "message": "Riassunti" },
-  "noVideoDetected": { "message": "Nessun video rilevato" },
-  "openVideoToSummarize": { "message": "Apri un video YouTube per riassumere" },
-  "generatingSummary": { "message": "Generazione in corso..." },
-  "btnSummarize": { "message": "Riassumi" },
-  "btnRegenerate": { "message": "🔄 Rigenera" },
-  "btnStop": { "message": "Ferma" },
-  "btnCopy": { "message": "📋 Copia" },
-  "copied": { "message": "✅ Copiato!" }
+  "extName": {
+    "message": "YT Summarizer"
+  },
+  "extDesc": {
+    "message": "Riassumi video YouTube con Claude, OpenAI, Gemini e altri. Estrazione affidabile dei sottotitoli tramite API InnerTube."
+  },
+  "optionsTitle": {
+    "message": "Impostazioni"
+  },
+  "apiSettingsTitle": {
+    "message": "Configurazione API"
+  },
+  "apiSettingsDesc": {
+    "message": "Configura il tuo provider AI preferito per generare riassunti nel pannello laterale."
+  },
+  "providerLabel": {
+    "message": "Provider AI"
+  },
+  "apiKeyLabel": {
+    "message": "Chiave API"
+  },
+  "providerGemini": {
+    "message": "Google Gemini (piano gratuito)"
+  },
+  "providerAnthropic": {
+    "message": "Anthropic Claude"
+  },
+  "providerOpenai": {
+    "message": "OpenAI"
+  },
+  "providerGroq": {
+    "message": "Groq"
+  },
+  "providerOpenrouter": {
+    "message": "OpenRouter"
+  },
+  "providerCustom": {
+    "message": "Personalizzato"
+  },
+  "helpGemini": {
+    "message": "Ottieni chiave gratis su Google AI Studio ↗"
+  },
+  "helpGroq": {
+    "message": "Ottieni chiave gratis su GroqCloud ↗"
+  },
+  "helpAnthropic": {
+    "message": "Ottieni chiave su Anthropic Console ↗"
+  },
+  "helpOpenai": {
+    "message": "Ottieni chiave su OpenAI Platform ↗"
+  },
+  "btnSave": {
+    "message": "Salva Impostazioni"
+  },
+  "saveSuccess": {
+    "message": "Impostazioni salvate!"
+  },
+  "sidepanelMissingKey": {
+    "message": "👋 Per riassumere qui, inserisci una chiave API (Google Gemini ha un piano gratuito) — oppure usa la modalità Web gratuita dal popup."
+  },
+  "sidepanelTitle": {
+    "message": "Riassunti"
+  },
+  "noVideoDetected": {
+    "message": "Nessun video rilevato"
+  },
+  "openVideoToSummarize": {
+    "message": "Apri un video YouTube per riassumere"
+  },
+  "generatingSummary": {
+    "message": "Generazione del riassunto…"
+  },
+  "btnSummarize": {
+    "message": "Riassumi"
+  },
+  "btnRegenerate": {
+    "message": "🔄 Rigenera"
+  },
+  "btnStop": {
+    "message": "Ferma"
+  },
+  "btnCopy": {
+    "message": "📋 Copia"
+  },
+  "copied": {
+    "message": "✅ Copiato!"
+  },
+  "modelLabel": {
+    "message": "Modello"
+  },
+  "endpointLabel": {
+    "message": "URL endpoint (compatibile OpenAI)"
+  },
+  "sidepanelSettingsNote": {
+    "message": "Lingua, lunghezza e prompt sono condivisi con il popup."
+  },
+  "btnDownload": {
+    "message": "⬇ .md"
+  },
+  "fetchingTranscript": {
+    "message": "Recupero trascrizione…"
+  },
+  "noTranscript": {
+    "message": "Questo video non ha sottotitoli, quindi non c’è una trascrizione da riassumere."
+  },
+  "outputTruncated": {
+    "message": "⚠️ Il modello ha raggiunto il limite di output — il riassunto si interrompe."
+  },
+  "summaryStopped": {
+    "message": "⏹ Interrotto — questo riassunto è incompleto."
+  },
+  "errorPrefix": {
+    "message": "Errore"
+  },
+  "helpOpenrouter": {
+    "message": "Ottieni una chiave su OpenRouter ↗"
+  },
+  "sidepanelPermissionDenied": {
+    "message": "Permesso per l’endpoint personalizzato negato."
+  },
+  "partialTranscript": {
+    "message": "⚠️ I sottotitoli coprono solo circa il $COVERAGE$ del video.",
+    "placeholders": {
+      "coverage": {
+        "content": "$1"
+      }
+    }
+  }
 }

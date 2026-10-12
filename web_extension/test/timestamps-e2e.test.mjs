@@ -5,7 +5,7 @@
 // the instruction has to reach the model, and the .md has to come back with
 // links that jump — and neither must happen when the transcript has no anchors
 // to begin with (the get_transcript fallback returns bare cue text).
-import { install, setTranscript, boot, runJob, reset, saved, check, finish } from './harness.mjs';
+import { install, setTranscript, boot, runJob, reset, saved, check, finish, anthropicStream } from './harness.mjs';
 
 // A transcript shaped like one the parser now produces: sparse [m:ss] anchors.
 const TIMED = Array.from({ length: 60 }, (_, i) =>
@@ -20,17 +20,11 @@ globalThis.fetch = async (url, opts) => {
   const body = JSON.parse(opts.body);
   sentPrompts.push(body.messages[0].content);
   // What a model does when it has been told to cite the anchors.
-  return {
-    ok: true, status: 200,
-    json: async () => ({
-      content: [{ type: 'text', text:
-        'Il primo punto [0:00] apre il video.\n' +
-        'Il secondo [1:30] è il nocciolo.\n' +
-        'Una nota già linkata [2:00](https://example.com) non va toccata.\n' +
-        'E una parentesi qualsiasi [nota] nemmeno.' }],
-      stop_reason: 'end_turn',
-    }),
-  };
+  return anthropicStream(
+    'Il primo punto [0:00] apre il video.\n' +
+    'Il secondo [1:30] è il nocciolo.\n' +
+    'Una nota già linkata [2:00](https://example.com) non va toccata.\n' +
+    'E una parentesi qualsiasi [nota] nemmeno.');
 };
 
 await boot();

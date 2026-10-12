@@ -1,5 +1,5 @@
 import { state } from './popup-state.js';
-import { CONFIG, PROVIDERS } from './config.js';
+import { PROVIDERS, resolveModel } from './config.js';
 import { escHtml } from './ui-utils.js';
 import { setMode, updateChipsForMode } from './popup-render.js';
 
@@ -28,7 +28,7 @@ export async function applyProvider(provider, apiKeys = {}, models = {}, customE
   modelList.innerHTML = info.models.map(m =>
     `<option value="${escHtml(m.value)}" label="${escHtml(m.label)}"></option>`
   ).join('');
-  modelInput.value = models[provider] || info.defaultModel || '';
+  modelInput.value = resolveModel(provider, models[provider]);
   modelInput.placeholder = provider === 'custom'
     ? 'e.g. llama3, phi3, mistral'
     : info.models.length ? 'Select or type a model name…' : 'Type a model name…';
@@ -83,7 +83,7 @@ export async function persistSettings() {
   await chrome.storage.local.set({
     provider, apiKeys: newApiKeys, models: newModels, customEndpointUrl,
     apiKey: provider === 'anthropic' ? apiKey : (storedKeys.anthropic || ''),
-    model:  provider === 'anthropic' ? model  : (storedModels.anthropic || 'claude-sonnet-4-6'),
+    model:  provider === 'anthropic' ? model  : resolveModel('anthropic', storedModels.anthropic),
     transcriptLang, customPrompt, mode, useThinking, autoPaste, autoSubmit, combinedPrompt, saveTranscriptFile, summaryLength, webDelay,
     includeTimestamps, chunkMode, chunkAuto, chunkAutoNum, chunkMerge, timeStart, timeEnd
   });

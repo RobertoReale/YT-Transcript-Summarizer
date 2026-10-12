@@ -25,19 +25,19 @@ function updateHelpLink() {
   
   if (provider === 'gemini') {
     link.href = 'https://aistudio.google.com/app/apikey';
-    link.textContent = chrome.i18n.getMessage('helpGemini') || 'Ottieni chiave gratis su Google AI Studio ↗';
+    link.textContent = chrome.i18n.getMessage('helpGemini') || 'Get a free key on Google AI Studio ↗';
     link.style.display = 'block';
   } else if (provider === 'groq') {
     link.href = 'https://console.groq.com/keys';
-    link.textContent = chrome.i18n.getMessage('helpGroq') || 'Ottieni chiave gratis su GroqCloud ↗';
+    link.textContent = chrome.i18n.getMessage('helpGroq') || 'Get a free key on GroqCloud ↗';
     link.style.display = 'block';
   } else if (provider === 'anthropic') {
     link.href = 'https://console.anthropic.com/settings/keys';
-    link.textContent = chrome.i18n.getMessage('helpAnthropic') || 'Ottieni chiave su Anthropic Console ↗';
+    link.textContent = chrome.i18n.getMessage('helpAnthropic') || 'Get a key on the Anthropic Console ↗';
     link.style.display = 'block';
   } else if (provider === 'openai') {
     link.href = 'https://platform.openai.com/api-keys';
-    link.textContent = chrome.i18n.getMessage('helpOpenai') || 'Ottieni chiave su OpenAI Platform ↗';
+    link.textContent = chrome.i18n.getMessage('helpOpenai') || 'Get a key on the OpenAI Platform ↗';
     link.style.display = 'block';
   } else {
     link.style.display = 'none';

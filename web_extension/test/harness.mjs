@@ -176,6 +176,28 @@ export async function runJob(settings, job = {}) {
   return rows[0];
 }
 
+/**
+ * A fetch Response streaming `text` the way the Anthropic Messages API does
+ * (callLLM always streams). Split into a few deltas so the accumulation is
+ * exercised, not just the happy single-event case.
+ */
+export function anthropicStream(text, stopReason = 'end_turn') {
+  const enc = new TextEncoder();
+  const ev = (name, obj) => `event: ${name}\ndata: ${JSON.stringify(obj)}\n\n`;
+  const pieces = String(text).match(/[\s\S]{1,40}/g) || [];
+  const events = [
+    ev('message_start', { type: 'message_start' }),
+    ...pieces.map(t => ev('content_block_delta', { type: 'content_block_delta', delta: { type: 'text_delta', text: t } })),
+    ev('message_delta', { type: 'message_delta', delta: { stop_reason: stopReason } }),
+  ];
+  return {
+    ok: true, status: 200,
+    body: new ReadableStream({
+      start(c) { for (const e of events) c.enqueue(enc.encode(e)); c.close(); },
+    }),
+  };
+}
+
 // ── assertions ───────────────────────────────────────────────────────────────
 let failures = 0;
 export function check(name, actual, expect) {

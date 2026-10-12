@@ -4,8 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>YT Summarizer</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="sidepanel.css">
 </head>
 <body>
@@ -25,7 +23,7 @@
       <span data-i18n="sidepanelTitle">Summarizer</span>
     </div>
     <div class="header-actions">
-      <button id="btn-settings" class="icon-btn" title="Open Settings">⚙️</button>
+      <button id="btn-settings" class="icon-btn" title="Settings" data-i18n-title="optionsTitle">⚙️</button>
     </div>
   </header>
 
@@ -38,7 +36,7 @@
     <div class="markdown-body" id="summary-output"></div>
     <div class="loading-indicator hidden" id="loading-indicator">
       <div class="pulse"></div>
-      <span data-i18n="generatingSummary">Generating summary...</span>
+      <span id="loading-text" data-i18n="generatingSummary">Generating summary…</span>
     </div>
   </main>
 
@@ -47,7 +45,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h2 class="modal-title" data-i18n="optionsTitle">Settings</h2>
-        <button id="btn-close-modal" class="icon-btn">✖</button>
+        <button id="btn-close-modal" class="icon-btn" aria-label="Close">✖</button>
       </div>
       <div class="modal-body">
         <div class="field">
@@ -62,10 +60,20 @@
           </select>
         </div>
         <div class="field">
-          <label data-i18n="apiKeyLabel">API Key</label>
-          <input type="password" id="modal-api-key" placeholder="Enter API Key..." data-i18n="apiKeyLabel">
-          <a id="modal-help-link" href="https://aistudio.google.com/app/apikey" target="_blank" class="help-link">Ottieni chiave gratis su Google AI Studio ↗</a>
+          <label for="modal-api-key" data-i18n="apiKeyLabel">API Key</label>
+          <input type="password" id="modal-api-key" autocomplete="off">
+          <a id="modal-help-link" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" class="help-link"></a>
         </div>
+        <div class="field">
+          <label for="modal-model" data-i18n="modelLabel">Model</label>
+          <input type="text" id="modal-model" list="modal-model-list" autocomplete="off">
+          <datalist id="modal-model-list"></datalist>
+        </div>
+        <div class="field hidden" id="field-endpoint">
+          <label for="modal-endpoint" data-i18n="endpointLabel">Endpoint URL (OpenAI-compatible)</label>
+          <input type="url" id="modal-endpoint" placeholder="http://localhost:11434/v1/chat/completions" autocomplete="off">
+        </div>
+        <p class="modal-note" data-i18n="sidepanelSettingsNote">Language, length and prompt are shared with the popup.</p>
         <button id="btn-save-settings" class="btn primary" data-i18n="btnSave">Save & Close</button>
       </div>
     </div>
@@ -75,7 +83,8 @@
     <div class="action-row">
       <button id="btn-summarize" class="btn primary" disabled data-i18n="btnSummarize">Summarize</button>
       <button id="btn-stop" class="btn danger hidden" data-i18n="btnStop">Stop</button>
-      <button id="btn-copy" class="btn secondary" disabled title="Copy to clipboard" data-i18n-title="btnCopy" data-i18n="btnCopy">📋 Copy</button>
+      <button id="btn-copy" class="btn secondary" disabled data-i18n="btnCopy">📋 Copy</button>
+      <button id="btn-download" class="btn secondary" disabled data-i18n="btnDownload">⬇ .md</button>
     </div>
   </footer>
 

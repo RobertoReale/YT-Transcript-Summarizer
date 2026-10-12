@@ -68,6 +68,22 @@ export async function downloadText(text, filename, mime = 'text/plain;charset=ut
   let url = null;
   let isBlob = false;
 
+  // Firefox runs the background as an event page, which — unlike Chrome's
+  // service worker — can mint blob: URLs itself. No offscreen round trip, and
+  // no data: URL size ceiling.
+  if (typeof document !== 'undefined' && typeof URL.createObjectURL === 'function') {
+    const local = URL.createObjectURL(new Blob([body], { type: mime }));
+    try {
+      const id = await chrome.downloads.download({ url: local, filename, saveAs: false });
+      if (id === undefined) throw new Error(chrome.runtime.lastError?.message || 'download rejected');
+      setTimeout(() => URL.revokeObjectURL(local), 120000);
+      return id;
+    } catch (e) {
+      URL.revokeObjectURL(local);
+      throw new Error(`Could not save "${filename}": ${e?.message || e}`);
+    }
+  }
+
   if (await ensureOffscreenDocument()) {
     try {
       const res = await chrome.runtime.sendMessage({ type: 'make-blob-url', text: body, mime });
